@@ -58,6 +58,9 @@ brews:
   - repository:
       owner: DuckInAShirt
       name: homebrew-tap
+      # Cross-repo push: the workflow's default GITHUB_TOKEN can only write
+      # this repo, so use a PAT scoped to homebrew-tap (see release workflow).
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/DuckInAShirt/leetmate
     description: "不给答案，只给提示——终端里的 LeetCode 辅导 + 间隔复习工具"
     license: MIT

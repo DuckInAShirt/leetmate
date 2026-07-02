@@ -32,3 +32,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT with write access to DuckInAShirt/homebrew-tap, so GoReleaser
+          # can push the formula across repos (GITHUB_TOKEN can't).
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
