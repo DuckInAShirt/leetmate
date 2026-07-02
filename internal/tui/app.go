@@ -393,7 +393,12 @@ func (m Model) View() string {
 
 func (m Model) menuView() string {
 	var b strings.Builder
-	b.WriteString(brandStyle.Render("⚔  LeetMate") + subtleStyle.Render("  "+m.d.t("brand.subtitle")) + "\n\n")
+	if logo := renderLogo(m.width); logo != "" {
+		b.WriteString("\n" + logo)
+		b.WriteString(subtleStyle.Render("  " + m.d.t("brand.subtitle")) + "\n\n")
+	} else {
+		b.WriteString(brandStyle.Render("⚔  LeetMate") + subtleStyle.Render("  "+m.d.t("brand.subtitle")) + "\n\n")
+	}
 
 	if m.busy {
 		b.WriteString(subtleStyle.Render(m.d.t("menu.busy")) + "\n")
