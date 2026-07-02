@@ -1,11 +1,37 @@
-# LeetMate
+<div align="center">
 
-> 不给答案，只给提示——然后在你忘记之前，把题排进复习。
+# 🧠 LeetMate
+
+**不给答案，只给提示——终端里的 LeetCode 苏格拉底式辅导 + 间隔复习**
+
+[![Release](https://img.shields.io/github/v/release/DuckInAShirt/leetmate?style=flat-square&logo=github&label=release)](https://github.com/DuckInAShirt/leetmate/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square)](#安装)
+[![Homebrew](https://img.shields.io/badge/Homebrew-tap-orange?style=flat-square&logo=homebrew&logoColor=white)](#安装)
+
+一行装上：
+
+`brew install DuckInAShirt/tap/leetmate`
+
+</div>
 
 LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「面试备战」设计。它不替你解题——你卡住时给一个**提示**而不是答案；练过的题会被排进**间隔复习队列**，赶在你忘掉之前回来。
 
-<!-- TODO: demo gif (M4) -->
-<!-- <p align="center"><img src="docs/demo.gif" width="720"/></p> -->
+```
+╭─ 今日题目 ─────────────────────────────────────────────╮
+│ #200 岛屿数量 · 中等                                   │
+├─ 你的代码 ─────────────────────────────────────────────┤
+│ func numIslands(grid [][]byte) int {                   │
+│     // ...                                             │
+│ }                                                      │
+├─ 辅导  (1·Hint  2·Nudge  3·Review  4·Answer) ──────────┤
+│ 💡 把「岛屿」想成图里的连通块——                         │
+│    怎么遍历标记一整座岛而不重复计数？                    │
+│    前三级绝不输出完整代码，逼你自己想出来。              │
+╰────────────────────────────────────────────────────────╯
+```
+
 
 ## 为什么造它
 
