@@ -1,0 +1,27 @@
+# Binaries
+/leetmate
+/bin/
+/dist/
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local secrets / env
+.env
+*.env.local
+
+# leetgo workspace artifacts (keep config, ignore generated)
+leetgo.yaml.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Go
+coverage.out
+coverage.html
