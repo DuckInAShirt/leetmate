@@ -40,8 +40,8 @@ var Presets = []Preset{
 	},
 	{
 		Name: "deepseek", Provider: "openai", BaseURL: "https://api.deepseek.com/v1",
-		Model: "deepseek-chat", APIKeyEnv: "DEEPSEEK_API_KEY", Free: false,
-		Desc:      "DeepSeek 官方（极便宜，指令遵循强）",
+		Model: "deepseek-v4-flash", APIKeyEnv: "DEEPSEEK_API_KEY", Free: false,
+		Desc:      "DeepSeek 官方（极便宜、快、指令遵循强；默认 thinking 模式）",
 		SignupURL: "https://platform.deepseek.com",
 	},
 }

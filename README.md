@@ -77,7 +77,7 @@ SILICONFLOW_API_KEY=sk-...   # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_
 | `gemini`（默认） | Google | gemini-2.0-flash | 全球，免费 tier |
 | `siliconflow` | 硅基流动 | GLM-4-9B（可改 DeepSeek-V3 等） | 国内访问稳，需实名 |
 | `groq` | Groq | llama-3.3-70b | 免费、极快，海外网络 |
-| `deepseek` | DeepSeek 官方 | deepseek-chat | 极便宜，指令遵循强 |
+| `deepseek` | DeepSeek 官方 | deepseek-v4-flash | 极便宜、快、指令遵循强 |
 
 ## 用法
 
