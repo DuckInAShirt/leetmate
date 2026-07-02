@@ -11,13 +11,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"leetmate/internal/coach"
-	"leetmate/internal/config"
-	"leetmate/internal/domain"
-	"leetmate/internal/leetgo"
-	"leetmate/internal/llm"
-	"leetmate/internal/store"
-	"leetmate/internal/studyplan"
+	"github.com/DuckInAShirt/leetmate/internal/coach"
+	"github.com/DuckInAShirt/leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/leetgo"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/store"
+	"github.com/DuckInAShirt/leetmate/internal/studyplan"
 )
 
 // Deps bundles the services the TUI needs.

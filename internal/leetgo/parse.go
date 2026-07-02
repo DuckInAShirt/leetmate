@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 	"gopkg.in/yaml.v3"
 )
 

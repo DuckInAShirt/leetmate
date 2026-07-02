@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 func newTestStore(t *testing.T) *Store {

@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 // InsertConversation appends a coaching message.

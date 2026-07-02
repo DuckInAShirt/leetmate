@@ -3,7 +3,7 @@ package leetgo
 import (
 	"testing"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 func TestParseMeta(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 // UpsertProblemMeta inserts or replaces cached problem metadata.

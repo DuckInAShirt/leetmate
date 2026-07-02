@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/config"
 )
 
 // Role identifies the speaker of a message.

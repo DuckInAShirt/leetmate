@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 // GetCard fetches a review card by slug.

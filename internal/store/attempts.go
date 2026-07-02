@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 // InsertAttempt records one practice session and returns its id.

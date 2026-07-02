@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"leetmate/internal/domain"
-	"leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
 )
 
 // fakeProvider captures the messages sent and replays canned chunks.

@@ -8,12 +8,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"leetmate/internal/coach"
-	"leetmate/internal/config"
-	"leetmate/internal/domain"
-	"leetmate/internal/leetgo"
-	"leetmate/internal/llm"
-	"leetmate/internal/store"
+	"github.com/DuckInAShirt/leetmate/internal/coach"
+	"github.com/DuckInAShirt/leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/leetgo"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/store"
 )
 
 func cfg(lang string) *config.Config { return &config.Config{Language: lang} }

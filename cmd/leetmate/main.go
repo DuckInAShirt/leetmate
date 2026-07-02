@@ -2,22 +2,37 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"leetmate/internal/coach"
-	"leetmate/internal/config"
-	"leetmate/internal/leetgo"
-	"leetmate/internal/llm"
-	"leetmate/internal/store"
-	"leetmate/internal/studyplan"
-	"leetmate/internal/tui"
+	"github.com/DuckInAShirt/leetmate/internal/coach"
+	"github.com/DuckInAShirt/leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/leetgo"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/store"
+	"github.com/DuckInAShirt/leetmate/internal/studyplan"
+	"github.com/DuckInAShirt/leetmate/internal/tui"
+)
+
+// Build-time variables, injected via -ldflags by GoReleaser. Defaults keep
+// `go build` working locally without a release pipeline.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("leetmate %s (%s) built %s\n", version, commit, date)
+		return
+	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "leetmate:", err)
 		os.Exit(1)

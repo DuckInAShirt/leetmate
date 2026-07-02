@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/config"
 )
 
 const geminiBase = "https://generativelanguage.googleapis.com/v1beta"

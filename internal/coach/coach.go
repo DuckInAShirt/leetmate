@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"leetmate/internal/domain"
-	"leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
 )
 
 //go:embed prompts/system.md

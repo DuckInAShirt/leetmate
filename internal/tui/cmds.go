@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"leetmate/internal/coach"
-	"leetmate/internal/domain"
-	"leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/coach"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/llm"
 )
 
 func timeNow() time.Time { return time.Now() }

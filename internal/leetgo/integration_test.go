@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/config"
 )
 
 // TestIntegrationReal exercises the real leetgo binary against a workspace.

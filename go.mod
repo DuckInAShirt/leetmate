@@ -1,4 +1,4 @@
-module leetmate
+module github.com/DuckInAShirt/leetmate
 
 go 1.26.4
 

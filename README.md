@@ -43,6 +43,22 @@ LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「
 
 ## 安装
 
+**Homebrew**（macOS / Linux）：
+
+```bash
+brew install DuckInAShirt/tap/leetmate
+```
+
+**go install**（需已安装 Go）：
+
+```bash
+go install github.com/DuckInAShirt/leetmate/cmd/leetmate@latest
+```
+
+**预编译二进制**：从 [Releases](https://github.com/DuckInAShirt/leetmate/releases) 下载对应平台的压缩包，解压后把 `leetmate` 放进 `PATH`。
+
+**从源码构建**：
+
 ```bash
 git clone https://github.com/DuckInAShirt/leetmate.git
 cd leetmate

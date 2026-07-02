@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/config"
 )
 
 // openaiProvider talks to any OpenAI-compatible /chat/completions endpoint

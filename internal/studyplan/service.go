@@ -3,7 +3,7 @@ package studyplan
 import (
 	"context"
 
-	"leetmate/internal/store"
+	"github.com/DuckInAShirt/leetmate/internal/store"
 )
 
 // Service wraps the plan list with progress tracking on top of the store.

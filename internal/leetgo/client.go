@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"leetmate/internal/config"
-	"leetmate/internal/domain"
+	"github.com/DuckInAShirt/leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
 // defaultTimeout caps individual leetgo invocations. Submit/test may hit the

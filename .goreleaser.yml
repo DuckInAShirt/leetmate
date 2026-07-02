@@ -1,0 +1,73 @@
+# GoReleaser config for leetmate.
+# Docs: https://goreleaser.com
+# Local dry-run (no GitHub publish): `goreleaser release --snapshot --clean`
+
+version: 2
+
+project_name: leetmate
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: leetmate
+    main: ./cmd/leetmate
+    binary: leetmate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else if eq .Os "windows" }}Windows
+      {{- else }}{{ .Os }}{{ end }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+brews:
+  - repository:
+      owner: DuckInAShirt
+      name: homebrew-tap
+    homepage: https://github.com/DuckInAShirt/leetmate
+    description: "不给答案，只给提示——终端里的 LeetCode 辅导 + 间隔复习工具"
+    license: MIT
+    directory: Formula
+    test: |
+      system "#{bin}/leetmate", "--version"
+    install: |
+      bin.install "leetmate"
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
