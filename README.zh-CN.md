@@ -87,12 +87,18 @@ leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace
 SILICONFLOW_API_KEY=sk-...   # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
 
-查看当前配置状态：
+查看或更新当前配置：
 
 ```bash
 leetmate config
 leetmate config --presets
+leetmate config set language zh
+leetmate config set leetgo.workspace /path/to/your/leetgo/workspace
+leetmate config set llm.preset siliconflow
+leetmate config set code.lang go
 ```
+
+支持写入的 key：`language`、`editor`、`leetgo.workspace`、`leetgo.binary`、`code.lang`、`llm.preset`、`llm.model`、`llm.max_history`、`db.path`。
 
 手动配置也可以，`~/.config/leetmate/config.yaml`：
 
@@ -107,7 +113,7 @@ llm:
   preset: siliconflow  # gemini | siliconflow | groq | deepseek
 ```
 
-刷题代码语言由 leetgo 管，不在 LeetMate 配置里改。请编辑 leetgo workspace 里的 `leetgo.yaml`：
+刷题代码语言由 leetgo 管，不在 LeetMate 配置里保存。`leetmate config set code.lang <lang>` 会更新 leetgo workspace 里的 `leetgo.yaml`，也可以手动编辑：
 
 ```yaml
 code:
@@ -145,6 +151,10 @@ id: my-plan
 title: 我的薄弱题
 items: ["5", "53", "200"]   # leetcode 题号
 ```
+
+## 发布
+
+代码推送到 `main` 后会自动创建下一个 patch tag（`vX.Y.Z`）并运行 GoReleaser，发布 GitHub Release 产物并更新 Homebrew tap。手动推送 `v*` tag 仍会触发常规 release workflow。
 
 ## 技术栈
 

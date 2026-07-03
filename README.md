@@ -87,12 +87,18 @@ Then put the corresponding API key in `~/.config/leetmate/.env`:
 SILICONFLOW_API_KEY=sk-...   # or GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
 
-Inspect the resolved config:
+Inspect or update the resolved config:
 
 ```bash
 leetmate config
 leetmate config --presets
+leetmate config set language en
+leetmate config set leetgo.workspace /path/to/your/leetgo/workspace
+leetmate config set llm.preset siliconflow
+leetmate config set code.lang go
 ```
+
+Supported writable keys: `language`, `editor`, `leetgo.workspace`, `leetgo.binary`, `code.lang`, `llm.preset`, `llm.model`, `llm.max_history`, `db.path`.
 
 Manual config lives at `~/.config/leetmate/config.yaml`:
 
@@ -107,7 +113,7 @@ llm:
   preset: siliconflow  # gemini | siliconflow | groq | deepseek
 ```
 
-The coding language is configured by leetgo, not LeetMate. Edit `leetgo.yaml` inside your leetgo workspace:
+The coding language is configured by leetgo, not LeetMate. `leetmate config set code.lang <lang>` updates `leetgo.yaml` inside your leetgo workspace, or you can edit it manually:
 
 ```yaml
 code:
@@ -145,6 +151,10 @@ id: my-plan
 title: My weak spots
 items: ["5", "53", "200"]   # LeetCode problem IDs
 ```
+
+## Release
+
+Pushes to `main` automatically create the next patch tag (`vX.Y.Z`) and run GoReleaser, publishing GitHub Release assets and updating the Homebrew tap. Manual `v*` tag pushes still trigger the regular release workflow.
 
 ## Tech Stack
 

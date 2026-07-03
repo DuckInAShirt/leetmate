@@ -184,8 +184,16 @@ func firstBool(m map[string]any, keys ...string) bool {
 // --- test output parsing ----------------------------------------------------
 
 func parseTestOutput(out string) domain.TestResult {
-	res := domain.TestResult{Passed: strings.Contains(out, "PASS") || strings.Contains(out, "Accepted")}
-	res.Passed = res.Passed && !strings.Contains(out, "FAIL")
+	upper := strings.ToUpper(out)
+	res := domain.TestResult{}
+	if strings.Contains(upper, "FAILED") || strings.Contains(upper, "FAIL") || strings.Contains(upper, "WRONG ANSWER") {
+		return res
+	}
+	if strings.Contains(upper, "CASE ") {
+		res.Passed = strings.Contains(upper, "PASSED")
+		return res
+	}
+	res.Passed = strings.Contains(upper, "PASS") || strings.Contains(upper, "ACCEPTED")
 	return res
 }
 

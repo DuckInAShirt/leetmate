@@ -50,6 +50,29 @@ func TestParseMetaArrayShape(t *testing.T) {
 	}
 }
 
+func TestParseTestOutputLeetgoPassedCases(t *testing.T) {
+	in := `● Case 1:    Passed
+● Case 2:    Passed
+● Case 3:    Passed
+
+● running test locally question=longest-consecutive-sequence
+● building file=go/0128.longest-consecutive-sequence/solution.go`
+	r := parseTestOutput(in)
+	if !r.Passed {
+		t.Fatal("expected all passed leetgo cases to pass")
+	}
+}
+
+func TestParseTestOutputLeetgoFailedCase(t *testing.T) {
+	in := `● Case 1:    Passed
+● Case 2:    Failed
+● running test locally question=longest-consecutive-sequence`
+	r := parseTestOutput(in)
+	if r.Passed {
+		t.Fatal("expected failed leetgo case not to pass")
+	}
+}
+
 func TestParseSubmitOutputAccepted(t *testing.T) {
 	in := "Accepted\nRuntime: 3 ms, faster than 95%\nMemory: 4.2 mb"
 	r := parseSubmitOutput(in)

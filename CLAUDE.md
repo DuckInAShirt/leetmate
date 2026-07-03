@@ -87,7 +87,7 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
 `tui/i18n.go` 的轻量字典：所有面向用户的字符串按 key + language 查表，缺翻译回退英文。加语言加列、加字符串加 key。
 
 ### README / demo / release
-`README.md` 是英文主 README，`README.zh-CN.md` 是中文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布由 `.github/workflows/release.yml` 在 `v*` tag push 时触发 GoReleaser；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
+`README.md` 是英文主 README，`README.zh-CN.md` 是中文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试、创建下一个 `v*` patch tag 并运行 GoReleaser；`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
 
 ## 约定
 
