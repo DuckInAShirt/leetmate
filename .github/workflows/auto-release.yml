@@ -1,0 +1,63 @@
+# Automatically publish a patch release after main receives new code.
+name: auto-release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # create the GitHub Release + assets and push the generated v* tag
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: auto-release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Create next patch tag
+        run: |
+          latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+          if [[ -z "$latest" ]]; then
+            next="v0.1.0"
+          else
+            version="${latest#v}"
+            IFS=. read -r major minor patch <<< "$version"
+            next="v${major}.${minor}.$((patch + 1))"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$next" -m "chore(release): $next"
+          git push origin "$next"
+          echo "Created $next"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT with write access to DuckInAShirt/homebrew-tap, so GoReleaser
+          # can push the formula across repos (GITHUB_TOKEN can't).
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

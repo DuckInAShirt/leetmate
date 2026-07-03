@@ -159,7 +159,7 @@ func (c *Client) Test(ctx context.Context, qid string) (domain.TestResult, error
 	if len(stderr) > 0 {
 		combined += "\n" + string(stderr)
 	}
-	res := parseTestOutput(string(stdout))
+	res := parseTestOutput(combined)
 	res.Raw = combined
 	if err != nil {
 		return res, fmt.Errorf("leetgo test %s: %w\n%s", qid, err, strings.TrimSpace(string(stderr)))
