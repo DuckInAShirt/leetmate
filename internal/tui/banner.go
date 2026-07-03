@@ -6,17 +6,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// leetmateLogo is the 3-D figlet rendering of "leetmate", baked once with
-// `figlet -f 3-d`. Kept as a constant so the binary stays self-contained
-// (no font files at runtime).
-const leetmateLogo = `  **                   **                           **
- /**                  /**                          /**
- /**  *****   *****  ****** **********   ******   ******  *****
- /** **///** **///**///**/ //**//**//** //////** ///**/  **//**
- /**/*******/*******  /**   /** /** /**  *******   /**  /*******
- /**/**//// /**////   /**   /** /** /** **////**   /**  /**////
- ***//******//******  //**  *** /** /**//********  //** //******
-///  //////  //////    //  ///  //  //  ////////    //   //////`
+// leetmateLogo is a flat pixel rendering of "LEETMATE". It intentionally
+// avoids 3-D shadows so the word stays visually centered in terminal screenshots.
+const leetmateLogo = `█        ██████  ██████  ████████  ███   ███   █████   ████████  ██████
+█        █       █          ██     ████ ████  ██   ██     ██     █
+█        █████   █████      ██     ██ ███ ██  ███████     ██     █████
+█        █       █          ██     ██  █  ██  ██   ██     ██     █
+███████  ██████  ██████     ██     ██     ██  ██   ██     ██     ██████`
 
 // logoGradient tints each row violet → blue → teal, a nod to the gemini-cli
 // aesthetic. Hex TrueColor; lipgloss downgrades gracefully on basic terminals.
@@ -29,7 +25,7 @@ var logoGradient = []string{
 // enough to fit it; otherwise "" so the caller can fall back to a plain title.
 // Trailing spaces per line are trimmed to keep bubbletea layout from shifting.
 func renderLogo(width int) string {
-	lines := strings.Split(leetmateLogo, "\n")
+	lines := strings.Split(strings.Trim(leetmateLogo, "\n"), "\n")
 	maxLen := 0
 	for i, ln := range lines {
 		lines[i] = strings.TrimRight(ln, " ")
@@ -43,8 +39,17 @@ func renderLogo(width int) string {
 	var b strings.Builder
 	for i, ln := range lines {
 		color := logoGradient[i%len(logoGradient)]
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(ln))
+		line := padRightCells(ln, maxLen)
+		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(line))
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+func padRightCells(s string, width int) string {
+	padding := width - lipgloss.Width(s)
+	if padding <= 0 {
+		return s
+	}
+	return s + strings.Repeat(" ", padding)
 }

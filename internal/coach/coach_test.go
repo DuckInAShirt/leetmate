@@ -57,6 +57,23 @@ func TestSystemPromptHasGuardrailsForHint(t *testing.T) {
 	}
 }
 
+func TestReviewTierAsksForHighConfidenceFindings(t *testing.T) {
+	f := &fakeProvider{}
+	c := New(f)
+	_, _ = c.Stream(context.Background(), Request{
+		Tier:    domain.TierReview,
+		Problem: domain.Problem{ProblemMeta: domain.ProblemMeta{FrontendID: "49", Title: "Group Anagrams", Difficulty: domain.DifficultyMedium}},
+		Code:    "func groupAnagrams(strs []string) [][]string { return nil }",
+		Lang:    "go",
+	})
+	sys := f.msgs[0].Content
+	for _, want := range []string{"高置信", "只报告", "可优化", "不要夸大"} {
+		if !strings.Contains(sys, want) {
+			t.Errorf("Review tier system prompt missing %q:\n%s", want, sys)
+		}
+	}
+}
+
 func TestAnswerTierGetsAnswerInstruction(t *testing.T) {
 	f := &fakeProvider{}
 	c := New(f)

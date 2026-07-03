@@ -38,7 +38,32 @@ var (
 		}
 	}
 
-	statusOKStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#86EFAC"))
+	statusOKStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#86EFAC"))
 	statusErrStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FCA5A5"))
-	hintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#94A3B8")).MarginTop(1)
+	hintStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#94A3B8")).MarginTop(1)
+
+	homeCardStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#7C3AED")).
+			Padding(1, 2)
+
+	homePanelStyle = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(lipgloss.Color("#334155")).
+			Padding(1, 0, 0)
+
+	homeMenuStyle = lipgloss.NewStyle().PaddingLeft(1)
+
+	homePromptStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#60A5FA")).
+			Foreground(lipgloss.Color("#CBD5E1")).
+			Padding(0, 1)
+
+	homePromptMarkerStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#C084FC")).
+				Bold(true)
+
+	homeTipStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#A5B4FC"))
+	homeStatusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#94A3B8"))
 )
