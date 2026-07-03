@@ -107,6 +107,13 @@ llm:
   preset: siliconflow  # gemini | siliconflow | groq | deepseek
 ```
 
+刷题代码语言由 leetgo 管，不在 LeetMate 配置里改。请编辑 leetgo workspace 里的 `leetgo.yaml`：
+
+```yaml
+code:
+  lang: go             # 或 python3 / cpp / java / ...
+```
+
 可选 preset：
 
 | preset | 平台 | 默认模型 | 备注 |
