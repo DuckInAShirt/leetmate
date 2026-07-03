@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/DuckInAShirt/leetmate/internal/coach"
 	"github.com/DuckInAShirt/leetmate/internal/config"
@@ -51,6 +52,23 @@ func TestMenuRenderEN(t *testing.T) {
 	for _, want := range []string{"Today's problem", "Due for review", "Quit", "select"} {
 		if !strings.Contains(v, want) {
 			t.Errorf("en view missing %q\n%s", want, v)
+		}
+	}
+}
+
+func TestLogoRenderPadsLinesToSameWidth(t *testing.T) {
+	rendered := renderLogo(118)
+	if rendered == "" {
+		t.Fatal("logo should render in the home card width")
+	}
+	lines := strings.Split(strings.TrimRight(rendered, "\n"), "\n")
+	if len(lines) == 0 {
+		t.Fatal("logo should not be empty")
+	}
+	wantWidth := lipgloss.Width(lines[0])
+	for i, line := range lines {
+		if got := lipgloss.Width(line); got != wantWidth {
+			t.Fatalf("rendered logo line %d width = %d, want %d: %q", i+1, got, wantWidth, line)
 		}
 	}
 }
@@ -213,5 +231,83 @@ func TestAnswerConfirmGate(t *testing.T) {
 	m = res.(Model)
 	if m.practice.answerConfirm {
 		t.Error(`"n" should cancel confirmation`)
+	}
+}
+
+func TestExpandCanSwitchBetweenErrorAndCoach(t *testing.T) {
+	deps := Deps{Config: cfg("zh")}
+	m := New(deps)
+	pm := newPracticeModel(deps, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	pm.fullErr = "compile error"
+	pm.coachText = "review text"
+	pm.focus = focusCode
+	m.practice = &pm
+	m.view = viewPractice
+
+	res, _ := m.Update(keypress("o"))
+	m = res.(Model)
+	if !m.practice.expanded || m.practice.expandKind != "error" {
+		t.Fatalf("code focus should open error detail, expanded=%v kind=%q", m.practice.expanded, m.practice.expandKind)
+	}
+	if got := m.practice.expandVP.View(); !strings.Contains(got, "compile error") {
+		t.Fatalf("error detail missing content: %q", got)
+	}
+
+	res, _ = m.Update(keypress("tab"))
+	m = res.(Model)
+	if m.practice.expandKind != "coach" {
+		t.Fatalf("tab should switch to coach detail, got %q", m.practice.expandKind)
+	}
+	if got := m.practice.expandVP.View(); !strings.Contains(got, "review text") {
+		t.Fatalf("coach detail missing content: %q", got)
+	}
+
+	m.practice.expanded = false
+	m.practice.focus = focusCoach
+	res, _ = m.Update(keypress("o"))
+	m = res.(Model)
+	if m.practice.expandKind != "coach" {
+		t.Fatalf("coach focus should open coach detail, got %q", m.practice.expandKind)
+	}
+}
+
+func TestExpandedCoachDetailStreamsChunks(t *testing.T) {
+	deps := Deps{Config: cfg("zh")}
+	m := New(deps)
+	pm := newPracticeModel(deps, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	pm.focus = focusCoach
+	m.practice = &pm
+	m.view = viewPractice
+
+	res, _ := m.Update(keypress("o"))
+	m = res.(Model)
+	if !m.practice.expanded || m.practice.expandKind != "coach" {
+		t.Fatalf("expected expanded coach detail, expanded=%v kind=%q", m.practice.expanded, m.practice.expandKind)
+	}
+
+	m = apply(t, m, coachChunkMsg{text: "first "})
+	m = apply(t, m, coachChunkMsg{text: "second"})
+	if m.practice.coachText != "first second" {
+		t.Fatalf("coachText = %q", m.practice.coachText)
+	}
+	if got := m.practice.expandVP.View(); !strings.Contains(got, "first second") {
+		t.Fatalf("expanded coach detail did not stream chunks: %q", got)
+	}
+}
+
+func TestExpandedCoachDetailWrapsLongLines(t *testing.T) {
+	pm := newPracticeModel(Deps{Config: cfg("zh")}, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	pm.focus = focusCoach
+	pm.expandVP.Width = 20
+	pm.expandVP.Height = 10
+	pm.coachText = "abcdefghijklmnopqrstuvwxyz"
+
+	pm.openExpandForFocus()
+
+	if !pm.expanded || pm.expandKind != "coach" {
+		t.Fatalf("expected coach detail, expanded=%v kind=%q", pm.expanded, pm.expandKind)
+	}
+	if got := pm.expandVP.View(); !strings.Contains(got, "abcdefghijklmnopqrst\nuvwxyz") {
+		t.Fatalf("expanded coach detail should wrap long lines, got %q", got)
 	}
 }

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -27,6 +28,17 @@ var (
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "init":
+			exitIfErr(runInit(os.Args[2:], os.Stdout))
+			return
+		case "config":
+			exitIfErr(runConfig(os.Args[2:], os.Stdout))
+			return
+		}
+	}
+
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 	if *showVersion {
@@ -37,6 +49,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, "leetmate:", err)
 		os.Exit(1)
 	}
+}
+
+func exitIfErr(err error) {
+	if err == nil || errors.Is(err, flag.ErrHelp) {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "leetmate:", err)
+	os.Exit(1)
 }
 
 func run() error {

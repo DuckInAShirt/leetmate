@@ -31,11 +31,11 @@ type practiceModel struct {
 	gaveUp bool
 	status string
 
-	viewport  viewport.Model // code
-	coachVP   viewport.Model // coaching reply
-	expandVP  viewport.Model // full-screen detail (error / coach reply)
-	ready     bool
-	focus     int // focusCode / focusCoach: which pane scroll keys act on
+	viewport viewport.Model // code
+	coachVP  viewport.Model // coaching reply
+	expandVP viewport.Model // full-screen detail (error / coach reply)
+	ready    bool
+	focus    int // focusCode / focusCoach: which pane scroll keys act on
 
 	coachText     string
 	coachTier     domain.Tier
@@ -176,6 +176,10 @@ func (m *practiceModel) applyCoachChunk(text string) {
 	m.coachText += text
 	m.setCoachContent()
 	m.coachVP.GotoBottom()
+	if m.expanded && m.expandKind == "coach" {
+		m.setExpandContent()
+		m.expandVP.GotoBottom()
+	}
 }
 
 func (m *practiceModel) applyCoachDone() {
@@ -210,18 +214,71 @@ func (m *practiceModel) sectionHeader(key string, focused bool) string {
 	return subtleStyle.Render("  " + m.d.t(key))
 }
 
-// openExpand toggles into a full-screen detail view showing either the full
-// coaching reply or the full error text.
-func (m *practiceModel) openExpand() {
-	content := m.coachText
-	m.expandKind = "coach"
+// openExpandForFocus toggles into a full-screen detail view. When both test
+// output and coach output exist, `o` opens the focused pane and expand mode can
+// switch between available detail targets.
+func (m *practiceModel) openExpandForFocus() {
+	kind := "coach"
+	if m.focus == focusCode && m.fullErr != "" {
+		kind = "error"
+	} else if m.coachText == "" && m.fullErr != "" {
+		kind = "error"
+	}
+	m.openExpandKind(kind)
+}
+
+func (m *practiceModel) cycleExpand() {
+	kinds := m.expandKinds()
+	if len(kinds) < 2 {
+		return
+	}
+	for i, kind := range kinds {
+		if kind == m.expandKind {
+			m.openExpandKind(kinds[(i+1)%len(kinds)])
+			return
+		}
+	}
+	m.openExpandKind(kinds[0])
+}
+
+func (m *practiceModel) expandKinds() []string {
+	var kinds []string
 	if m.fullErr != "" {
-		content = m.fullErr
+		kinds = append(kinds, "error")
+	}
+	if m.coachText != "" {
+		kinds = append(kinds, "coach")
+	}
+	if len(kinds) == 0 {
+		kinds = append(kinds, "coach")
+	}
+	return kinds
+}
+
+func (m *practiceModel) openExpandKind(kind string) {
+	m.expandKind = "coach"
+	if kind == "error" && m.fullErr != "" {
 		m.expandKind = "error"
 	}
 	m.expanded = true
+	m.setExpandContent()
+	m.expandVP.GotoTop()
+}
+
+func (m *practiceModel) setExpandContent() {
+	content := m.fullErr
+	if m.expandKind == "coach" {
+		content = wrapWidth(m.coachText, m.expandContentWidth())
+	}
 	m.expandVP.SetContent(content)
-	m.expandVP.GotoBottom()
+}
+
+func (m *practiceModel) expandContentWidth() int {
+	w := m.expandVP.Width
+	if w < 10 {
+		w = 76
+	}
+	return w
 }
 
 func (m *practiceModel) renderExpand() string {
@@ -318,8 +375,8 @@ func openEditor(deps Deps, path string) tea.Cmd {
 
 var (
 	mdRefDef   = regexp.MustCompile(`(?m)^\s*\[[^\]]+\]:\s*\S.*$`) // [id]: url reference defs (allow indent)
-	mdRefLink  = regexp.MustCompile(`\[([^\]]+)\]\[[^\]]*\]`)   // [text][id]
-	mdInlLink  = regexp.MustCompile(`\[([^\]]+)\]\([^)]*\)`)    // [text](url)
+	mdRefLink  = regexp.MustCompile(`\[([^\]]+)\]\[[^\]]*\]`)      // [text][id]
+	mdInlLink  = regexp.MustCompile(`\[([^\]]+)\]\([^)]*\)`)       // [text](url)
 	mdBold     = regexp.MustCompile(`\*\*([^*]+)\*\*`)
 	mdBacktick = regexp.MustCompile("`([^`]+)`")
 )

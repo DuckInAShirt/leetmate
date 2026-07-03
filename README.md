@@ -1,63 +1,71 @@
 # LeetMate
 
-> 不给答案，只给提示——然后在你忘记之前，把题排进复习。
+<p align="center">
+  <strong>LeetMate, your LeetCode practice companion.</strong><br/>
+  Hints, not handouts — then review problems before you forget them.
+</p>
 
-LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「面试备战」设计。它不替你解题——你卡住时给一个**提示**而不是答案；练过的题会被排进**间隔复习队列**，赶在你忘掉之前回来。
+<p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-<!-- TODO: demo gif (M4) -->
-<!-- <p align="center"><img src="docs/demo.gif" width="720"/></p> -->
+<p align="center">
+  <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
+</p>
 
-## 为什么造它
+LeetMate is a terminal-based **LeetCode coaching TUI** built for interview prep. It does not solve problems for you: when you are stuck, it gives a **hint** instead of an answer. Practiced problems are queued for spaced review so you revisit them before they fade.
 
-市面上的 LeetCode 工具要么只给题、要么直接给答案，都不利于真正学会。LeetMate 介于两者之间：卡住时按 `1`（Hint）只拿到算法方向、按 `2`（Nudge）拿到卡点提示、按 `3`（Review）让它挑你代码的 bug——**前三级绝不输出完整代码**；只有按 `4`（Answer）并二次确认才给完整解法。每一道练过的题自动进 FSRS 复习队列（开发中）。
+## Why
 
-## 功能
+Most LeetCode tools either hand you problems or hand you full solutions. LeetMate sits in the middle: press `1` for a high-level Hint, `2` for a targeted Nudge, or `3` for a Review of your code. The first three tiers **never output a complete solution**. Only `4` (Answer), with a second confirmation, can reveal a full implementation. Practiced problems are scheduled into an FSRS-style review queue (in progress).
 
-- 🧠 **苏格拉底式辅导** — Hint / Nudge / Review / Answer 四级，防代答 system prompt 守住前三级不泄答案
-- 📋 **题单** — 内置「热题 100」「面试经典 150」，进度跟踪 + 自动跳到下一题；支持自定义题单
-- 🧩 **基于 [leetgo](https://github.com/j178/leetgo)** — 代码骨架、本地测试、提交全交给 leetgo
-- 🔁 **间隔复习** — FSRS 调度（开发中，M3）
-- 🎛️ **自带模型** — 一行 `preset` 切换 Gemini / 硅基流动 / Groq / DeepSeek，只填 key 即可
-- 🗳️ **本地优先** — 所有练习记录、对话、进度都在本地 SQLite，数据不离机
-- 🌐 **中英文界面** — config 一行切换
-- 📜 **流式输出 + 可展开详情** — 辅导打字机式流式；默认折叠预览，`o` 展开全文 / 完整错误
+## Features
 
-## 状态
+- 🧠 **Socratic coaching** — Hint / Nudge / Review / Answer tiers, with guardrails that keep the first three tiers from leaking full code
+- 📋 **Study plans** — Built-in Hot 100 and Interview 150, progress tracking, auto-next flow, and custom YAML plans
+- 🧩 **Powered by [leetgo](https://github.com/j178/leetgo)** — Uses leetgo for code scaffolding, local tests, and submissions
+- 🔁 **Spaced review** — FSRS scheduling is in progress
+- 🎛️ **Model presets** — Switch Gemini / SiliconFlow / Groq / DeepSeek with one `preset`; put secrets in `.env`
+- 🗳️ **Local-first data** — Attempts, conversations, and progress live in local SQLite
+- 🌐 **Chinese and English UI** — One config value switches the interface language
+- 📜 **Streaming + expandable details** — Coach replies stream in; press `o` to expand the full reply or full error output
 
-🧪 **Alpha**。辅导 + 题单闭环已可用，FSRS 复习队列开发中。
+## Status
 
-| 模块 | 状态 |
-|------|------|
-| leetgo 集成（pick/test/submit）| ✅ |
-| LLM 辅导（四级 + 防代答 + 流式） | ✅ |
-| 题单 + 进度 | ✅ |
-| preset 多模型 | ✅ |
-| FSRS 间隔复习 | 🚧 进行中 |
-| `leetmate init` 配置向导 | 📋 计划 |
+🧪 **Alpha**. Coaching and study-plan flows are usable; the FSRS review queue is still in progress.
 
-## 前置依赖
+| Module | Status |
+|--------|--------|
+| leetgo integration (pick/test/submit) | ✅ |
+| LLM coaching (four tiers + guardrails + streaming) | ✅ |
+| Study plans + progress | ✅ |
+| Model presets | ✅ |
+| FSRS spaced review | 🚧 In progress |
+| `leetmate init` config generator | ✅ |
+
+## Requirements
 
 - Go 1.26+
-- [leetgo](https://github.com/j178/leetgo)：`brew install leetgo` 或 `go install github.com/j178/leetgo@latest`，并 `leetgo init` 配好 LeetCode 认证
-- 一个 LLM API key（Gemini / 硅基流动 / Groq / DeepSeek 任一，均有免费额度）
+- [leetgo](https://github.com/j178/leetgo): `brew install leetgo` or `go install github.com/j178/leetgo@latest`, then run `leetgo init` and configure LeetCode authentication
+- One LLM API key: Gemini, SiliconFlow, Groq, or DeepSeek all have free or low-cost options
 
-## 安装
+## Installation
 
-**Homebrew**（macOS / Linux）：
+**Homebrew** (macOS / Linux):
 
 ```bash
 brew install DuckInAShirt/tap/leetmate
 ```
 
-**go install**（需已安装 Go）：
+**go install**:
 
 ```bash
 go install github.com/DuckInAShirt/leetmate/cmd/leetmate@latest
 ```
 
-**预编译二进制**：从 [Releases](https://github.com/DuckInAShirt/leetmate/releases) 下载对应平台的压缩包，解压后把 `leetmate` 放进 `PATH`。
+**Prebuilt binaries**: download the archive for your platform from [Releases](https://github.com/DuckInAShirt/leetmate/releases), extract it, and put `leetmate` in your `PATH`.
 
-**从源码构建**：
+**Build from source**:
 
 ```bash
 git clone https://github.com/DuckInAShirt/leetmate.git
@@ -65,59 +73,73 @@ cd leetmate
 go build -o leetmate ./cmd/leetmate
 ```
 
-## 配置
+## Configuration
 
-`~/.config/leetmate/config.yaml`：
+Generate a starter config first:
+
+```bash
+leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace
+```
+
+Then put the corresponding API key in `~/.config/leetmate/.env`:
+
+```dotenv
+SILICONFLOW_API_KEY=sk-...   # or GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
+```
+
+Inspect the resolved config:
+
+```bash
+leetmate config
+leetmate config --presets
+```
+
+Manual config lives at `~/.config/leetmate/config.yaml`:
 
 ```yaml
-language: zh          # 或 en
+language: en          # or zh
 
 leetgo:
   workspace: /path/to/your/leetgo/workspace
 
-# 选一个 preset，对应平台的 key 放进 .env 即可
+# Pick one preset; put the matching API key in .env.
 llm:
   preset: siliconflow  # gemini | siliconflow | groq | deepseek
 ```
 
-`~/.config/leetmate/.env`（只放 key）：
+Available presets:
 
-```dotenv
-SILICONFLOW_API_KEY=sk-...   # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
-```
+| preset | Provider | Default model | Notes |
+|--------|----------|---------------|-------|
+| `gemini` (default) | Google | gemini-2.0-flash | Global access, free tier |
+| `siliconflow` | SiliconFlow | GLM-4-9B (can override to DeepSeek-V3, etc.) | Reliable from China, requires real-name verification |
+| `groq` | Groq | llama-3.3-70b | Free and very fast, best with overseas network |
+| `deepseek` | DeepSeek official | deepseek-v4-flash | Cheap, fast, strong instruction following |
 
-可选 preset：
-
-| preset | 平台 | 默认模型 | 备注 |
-|--------|------|---------|------|
-| `gemini`（默认） | Google | gemini-2.0-flash | 全球，免费 tier |
-| `siliconflow` | 硅基流动 | GLM-4-9B（可改 DeepSeek-V3 等） | 国内访问稳，需实名 |
-| `groq` | Groq | llama-3.3-70b | 免费、极快，海外网络 |
-| `deepseek` | DeepSeek 官方 | deepseek-v4-flash | 极便宜、快、指令遵循强 |
-
-## 用法
+## Usage
 
 ```bash
-./leetmate
+leetmate
 ```
 
-进 TUI 后：
-- **今日题目 / 题单** — 选题开始
-- `e` 编辑代码 · `t` 本地测试 · `s` 提交
-- `1` Hint · `2` Nudge · `3` Review · `4` Answer（二次确认）
-- `Tab` 切代码/辅导区 · `o` 展开详情 · `↑/↓` 滚动
+Inside the TUI:
 
-## 自定义题单
+- **Today's problem / Study plans** — Pick a problem and start practicing
+- `e` edit code · `t` run local tests · `s` submit
+- `1` Hint · `2` Nudge · `3` Review · `4` Answer (requires confirmation)
+- `Tab` switch between code and coach panes · `o` expand details · `↑/↓` scroll
 
-`~/.config/leetmate/studyplans/my-plan.yaml`：
+## Custom Study Plans
+
+`~/.config/leetmate/studyplans/my-plan.yaml`:
 
 ```yaml
 id: my-plan
-title: 我的薄弱题
-items: ["5", "53", "200"]   # leetcode 题号
+title: My weak spots
+items: ["5", "53", "200"]   # LeetCode problem IDs
 ```
 
-## 技术栈
+## Tech Stack
 
 Go · [bubbletea](https://github.com/charmbracelet/bubbletea) · [leetgo](https://github.com/j178/leetgo) · SQLite (modernc) · FSRS
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/DuckInAShirt/leetmate/internal/coach"
 	"github.com/DuckInAShirt/leetmate/internal/config"
@@ -25,7 +26,7 @@ type Deps struct {
 	Leetgo *leetgo.Client
 	Store  *store.Store
 	Config *config.Config
-	Coach  *coach.Coach        // nil when no LLM key is configured — coaching is then disabled
+	Coach  *coach.Coach // nil when no LLM key is configured — coaching is then disabled
 	Plans  *studyplan.Service
 }
 
@@ -242,12 +243,14 @@ func (m Model) updateMenu(str string) (tea.Model, tea.Cmd) {
 func (m Model) practiceUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
 	p := m.practice
 
-	// Expand mode: dedicated key handling (scroll the detail pane, o/esc to exit).
+	// Expand mode: dedicated key handling (scroll detail, switch detail target, or exit).
 	if p.expanded {
 		switch str {
 		case "o", "esc":
 			p.expanded = false
 			return m, nil
+		case "tab", "left", "right", "h", "l":
+			p.cycleExpand()
 		case "up", "k":
 			p.expandVP.LineUp(1)
 		case "down", "j":
@@ -305,7 +308,7 @@ func (m Model) practiceUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
 		p.coachErr = ""
 		return m, nil
 	case "o":
-		p.openExpand()
+		p.openExpandForFocus()
 		return m, nil
 	case "y", "Y":
 		if p.answerConfirm {
@@ -367,11 +370,11 @@ func (m Model) startCoach(tier domain.Tier, gaveUp bool) (tea.Model, tea.Cmd) {
 	}
 	hist, _ := m.deps.Store.RecentConversations(context.Background(), p.problem.Slug, m.deps.Config.LLM.MaxHistory)
 	req := coach.Request{
-		Tier:     tier,
-		Problem:  p.problem,
-		Code:     p.code,
-		Lang:     m.deps.Leetgo.Lang(),
-		History:  hist,
+		Tier:    tier,
+		Problem: p.problem,
+		Code:    p.code,
+		Lang:    m.deps.Leetgo.Lang(),
+		History: hist,
 	}
 	return m, coachStartCmd(m.deps, req)
 }
@@ -392,39 +395,116 @@ func (m Model) View() string {
 }
 
 func (m Model) menuView() string {
-	var b strings.Builder
-	if logo := renderLogo(m.width); logo != "" {
-		b.WriteString("\n" + logo)
-		b.WriteString(subtleStyle.Render("  " + m.d.t("brand.subtitle")) + "\n\n")
-	} else {
-		b.WriteString(brandStyle.Render("⚔  LeetMate") + subtleStyle.Render("  "+m.d.t("brand.subtitle")) + "\n\n")
+	width := m.width
+	if width <= 0 {
+		width = 96
 	}
+	contentWidth := clampInt(width-16, 42, 118)
+	if width < 52 {
+		contentWidth = maxInt(width-6, 20)
+	}
+	compact := m.height > 0 && m.height < 18
+	card := homeCardStyle.Width(contentWidth).Render(m.renderHomeCard(contentWidth, compact))
+	if width <= lipgloss.Width(card) {
+		return card
+	}
+	return "\n" + lipgloss.PlaceHorizontal(width, lipgloss.Center, card)
+}
 
-	if m.busy {
-		b.WriteString(subtleStyle.Render(m.d.t("menu.busy")) + "\n")
+func (m Model) renderHomeCard(width int, compact bool) string {
+	sections := []string{m.renderHomeHeader(width, compact)}
+	if !compact {
+		sections = append(sections, m.renderHomeTips(width, 3))
 	}
+	menuWidth := clampInt(width-12, 32, 56)
+	menu := lipgloss.PlaceHorizontal(width, lipgloss.Center, homeMenuStyle.Width(menuWidth).Render(m.renderHomeMenu(menuWidth)))
+	sections = append(sections, homePanelStyle.Width(width).Render(menu))
+	sections = append(sections, m.renderHomePrompt(width), m.renderHomeStatus(width))
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
+
+func (m Model) renderHomeHeader(width int, compact bool) string {
+	var lines []string
+	if logo := renderLogo(width); logo != "" && !compact {
+		lines = append(lines, lipgloss.PlaceHorizontal(width, lipgloss.Center, strings.TrimRight(logo, "\n")))
+	} else {
+		lines = append(lines, lipgloss.PlaceHorizontal(width, lipgloss.Center, brandStyle.Render("⚔  LeetMate")))
+	}
+	lines = append(lines, lipgloss.PlaceHorizontal(width, lipgloss.Center, subtleStyle.Render(m.d.t("brand.subtitle"))))
+	return lipgloss.JoinVertical(lipgloss.Center, lines...)
+}
+
+func (m Model) renderHomeMenu(width int) string {
+	var b strings.Builder
 	for i, item := range m.menu {
 		marker := "  "
-		line := item.label
+		label := normalStyle.Render(item.label)
 		if i == m.cursor {
-			marker = "▸ "
-			line = selectedStyle.Render(item.label)
-		} else {
-			line = normalStyle.Render(item.label)
+			marker = homePromptMarkerStyle.Render("▸ ")
+			label = selectedStyle.Render(item.label)
 		}
 		desc := ""
 		if item.desc != "" {
-			desc = subtleStyle.Render("  " + item.desc)
+			descWidth := maxInt(width-lipgloss.Width(marker)-lipgloss.Width(item.label)-4, 8)
+			desc = subtleStyle.Render("  " + truncateWidth(item.desc, descWidth))
 		}
-		b.WriteString(fmt.Sprintf("%s%s%s\n", marker, line, desc))
-	}
-	b.WriteString(hintStyle.Render("\n" + m.d.t("menu.hint")))
-
-	if m.notice != "" {
-		b.WriteString("\n" + subtleStyle.Render(m.notice))
-	}
-	if m.err != "" {
-		b.WriteString("\n" + statusErrStyle.Render("⚠ "+m.err))
+		b.WriteString(marker + label + desc)
+		if i < len(m.menu)-1 {
+			b.WriteByte('\n')
+		}
 	}
 	return b.String()
+}
+
+func (m Model) renderHomeTips(width, maxTips int) string {
+	tips := []string{m.d.t("home.tip.1"), m.d.t("home.tip.2"), m.d.t("home.tip.3")}
+	if maxTips > len(tips) {
+		maxTips = len(tips)
+	}
+	var b strings.Builder
+	b.WriteString(homeTipStyle.Bold(true).Render(m.d.t("home.tips.title")))
+	for i := 0; i < maxTips; i++ {
+		b.WriteByte('\n')
+		line := fmt.Sprintf("%d. %s", i+1, tips[i])
+		b.WriteString(subtleStyle.Render(truncateWidth(line, width)))
+	}
+	return b.String()
+}
+
+func (m Model) renderHomePrompt(width int) string {
+	innerWidth := clampInt(width-8, 28, 72)
+	promptText := m.d.t("home.prompt") + " · " + m.d.t("menu.hint")
+	prompt := homePromptMarkerStyle.Render("> ") + truncateWidth(promptText, innerWidth-2)
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, homePromptStyle.Width(innerWidth).Render(prompt))
+}
+
+func (m Model) renderHomeStatus(width int) string {
+	status := m.d.t("home.status.ready")
+	style := homeStatusStyle
+	if m.err != "" {
+		status = "⚠ " + m.err
+		style = statusErrStyle
+	} else if m.busy {
+		status = m.d.t("home.status.busy")
+	} else if m.notice != "" {
+		status = m.notice
+	}
+	return style.Render(truncateWidth(status, maxInt(width, 24)))
+}
+
+func clampInt(v, low, high int) int {
+	if v < low {
+		return low
+	}
+	if v > high {
+		return high
+	}
+	return v
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
