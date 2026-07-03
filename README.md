@@ -107,6 +107,13 @@ llm:
   preset: siliconflow  # gemini | siliconflow | groq | deepseek
 ```
 
+The coding language is configured by leetgo, not LeetMate. Edit `leetgo.yaml` inside your leetgo workspace:
+
+```yaml
+code:
+  lang: go             # or python3 / cpp / java / ...
+```
+
 Available presets:
 
 | preset | Provider | Default model | Notes |
