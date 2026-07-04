@@ -10,6 +10,14 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/DuckInAShirt/leetmate/releases"><img alt="最新版本" src="https://img.shields.io/github/v/release/DuckInAShirt/leetmate?style=for-the-badge&label=version" /></a>
+  <a href="https://github.com/DuckInAShirt/leetmate/actions/workflows/auto-release.yml"><img alt="构建状态" src="https://img.shields.io/github/actions/workflow/status/DuckInAShirt/leetmate/auto-release.yml?branch=main&style=for-the-badge&label=build" /></a>
+  <a href="https://go.dev/"><img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white" /></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/DuckInAShirt/leetmate?style=for-the-badge" /></a>
+  <a href="https://github.com/DuckInAShirt/homebrew-tap"><img alt="Homebrew tap" src="https://img.shields.io/badge/Homebrew-DuckInAShirt%2Ftap-FBB040?style=for-the-badge&logo=homebrew&logoColor=white" /></a>
+</p>
+
+<p align="center">
   <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
 </p>
 
