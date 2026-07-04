@@ -15,6 +15,7 @@ import (
 	"github.com/DuckInAShirt/leetmate/internal/leetgo"
 	"github.com/DuckInAShirt/leetmate/internal/llm"
 	"github.com/DuckInAShirt/leetmate/internal/store"
+	"github.com/DuckInAShirt/leetmate/internal/studyplan"
 )
 
 func cfg(lang string) *config.Config { return &config.Config{Language: lang} }
@@ -93,6 +94,69 @@ func TestMenuNavReviewNotice(t *testing.T) {
 	m = apply(t, m, enter())
 	if !strings.Contains(m.notice, "M3") {
 		t.Errorf("enter on review should set notice, got %q", m.notice)
+	}
+}
+
+func TestBackFromPlanItemsRestoresPlanListCursor(t *testing.T) {
+	dir := t.TempDir()
+	st, err := store.Open(filepath.Join(dir, "t.db"))
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	defer st.Close()
+	plans := []*studyplan.Plan{
+		{ID: "hot100", Title: "Hot 100", Items: []string{"1", "2"}},
+		{ID: "interview150", Title: "Interview 150", Items: []string{"3", "4"}},
+	}
+	deps := Deps{Config: cfg("zh"), Store: st, Plans: studyplan.NewService(st, plans)}
+	m := New(deps)
+	m.planList = plans
+	m.planCursor = 1
+	m.view = viewPlanList
+
+	m = apply(t, m, enter())
+	if m.view != viewPlanItems || m.curPlanID != "interview150" {
+		t.Fatalf("expected to enter interview150 items, view=%d curPlanID=%q", m.view, m.curPlanID)
+	}
+	if m.planCursor != 0 {
+		t.Fatalf("item cursor = %d, want 0", m.planCursor)
+	}
+
+	m = apply(t, m, keypress("b"))
+	if m.view != viewPlanList {
+		t.Fatalf("b should return to plan list, view=%d", m.view)
+	}
+	if m.planCursor != 1 {
+		t.Fatalf("plan list cursor = %d, want 1", m.planCursor)
+	}
+}
+
+func TestPlanListEnterClampsStaleCursor(t *testing.T) {
+	dir := t.TempDir()
+	st, err := store.Open(filepath.Join(dir, "t.db"))
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	defer st.Close()
+	plans := []*studyplan.Plan{
+		{ID: "hot100", Title: "Hot 100", Items: []string{"1", "2"}},
+		{ID: "interview150", Title: "Interview 150", Items: []string{"3", "4"}},
+	}
+	deps := Deps{Config: cfg("zh"), Store: st, Plans: studyplan.NewService(st, plans)}
+	m := New(deps)
+	m.planList = plans
+	m.planCursor = len(plans) // stale item cursor used to panic on enter
+	m.view = viewPlanList
+
+	m = apply(t, m, enter())
+	if m.view != viewPlanItems {
+		t.Fatalf("enter with stale cursor should still open a plan, view=%d", m.view)
+	}
+	if m.curPlanID != "interview150" {
+		t.Fatalf("curPlanID = %q, want interview150", m.curPlanID)
+	}
+	if m.planCursor != 0 {
+		t.Fatalf("item cursor = %d, want 0", m.planCursor)
 	}
 }
 

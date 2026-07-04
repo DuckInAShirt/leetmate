@@ -11,23 +11,24 @@ import (
 // renderPlanList shows all study plans with their progress.
 func (m Model) renderPlanList() string {
 	var b strings.Builder
-	b.WriteString(brandStyle.Render("📋 " + m.d.t("menu.plans")) + "\n\n")
+	b.WriteString(brandStyle.Render("📋 "+m.d.t("menu.plans")) + "\n\n")
 	if len(m.planList) == 0 {
 		b.WriteString(subtleStyle.Render("（暂无题单）"))
 		return b.String()
 	}
+	cursor := clampCursor(m.planCursor, len(m.planList))
 	ctx := context.Background()
 	for i, p := range m.planList {
 		done, total := m.deps.Plans.Progress(ctx, p.ID)
 		marker := "  "
 		label := normalStyle.Render(p.Title)
-		if i == m.planCursor {
+		if i == cursor {
 			marker = "▸ "
 			label = selectedStyle.Render(p.Title)
 		}
 		prog := subtleStyle.Render(fmt.Sprintf("  %d/%d", done, total))
 		b.WriteString(marker + label + prog + "\n")
-		if i == m.planCursor && p.Description != "" {
+		if i == cursor && p.Description != "" {
 			b.WriteString("    " + subtleStyle.Render(p.Description) + "\n")
 		}
 	}
@@ -63,7 +64,8 @@ func (m Model) renderPlanItems() string {
 		visible = 5
 	}
 	total := len(m.planItems)
-	start := m.planCursor - visible/2
+	cursor := clampCursor(m.planCursor, total)
+	start := cursor - visible/2
 	if start < 0 {
 		start = 0
 	}
@@ -89,7 +91,7 @@ func (m Model) renderPlanItems() string {
 		}
 		line := fmt.Sprintf("#%s  %s", fid, mark)
 		marker := "  "
-		if i == m.planCursor {
+		if i == cursor {
 			marker = "▸ "
 			line = selectedStyle.Render(line)
 		} else {
@@ -105,6 +107,7 @@ func (m Model) renderPlanItems() string {
 }
 
 func (m Model) updatePlanList(str string) (tea.Model, tea.Cmd) {
+	m.planCursor = clampCursor(m.planCursor, len(m.planList))
 	switch str {
 	case "j", "down":
 		if m.planCursor < len(m.planList)-1 {
@@ -140,6 +143,7 @@ func (m Model) updatePlanList(str string) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updatePlanItems(str string) (tea.Model, tea.Cmd) {
+	m.planCursor = clampCursor(m.planCursor, len(m.planItems))
 	switch str {
 	case "j", "down":
 		if m.planCursor < len(m.planItems)-1 {
@@ -161,9 +165,29 @@ func (m Model) updatePlanItems(str string) (tea.Model, tea.Cmd) {
 	case "b", "esc":
 		// Refresh progress when returning (a submission may have marked one done).
 		m.planDone = m.deps.Plans.DoneSet(context.Background(), m.curPlanID)
+		m.planCursor = m.currentPlanListIndex()
 		m.view = viewPlanList
 	case "q":
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+func clampCursor(cursor, total int) int {
+	if total <= 0 || cursor < 0 {
+		return 0
+	}
+	if cursor >= total {
+		return total - 1
+	}
+	return cursor
+}
+
+func (m Model) currentPlanListIndex() int {
+	for i, p := range m.planList {
+		if p.ID == m.curPlanID {
+			return i
+		}
+	}
+	return clampCursor(m.planCursor, len(m.planList))
 }
