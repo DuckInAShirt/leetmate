@@ -15,6 +15,7 @@
   <a href="https://go.dev/"><img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/DuckInAShirt/leetmate?style=for-the-badge" /></a>
   <a href="https://github.com/DuckInAShirt/homebrew-tap"><img alt="Homebrew tap" src="https://img.shields.io/badge/Homebrew-DuckInAShirt%2Ftap-FBB040?style=for-the-badge&logo=homebrew&logoColor=white" /></a>
+  <a href="https://cloud.siliconflow.cn/i/hoNe8cdD"><img alt="硅基流动邀请码 hoNe8cdD" src="https://img.shields.io/badge/SiliconFlow-hoNe8cdD-7C3AED?style=for-the-badge" /></a>
 </p>
 
 <p align="center">
@@ -94,6 +95,8 @@ leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace
 ```dotenv
 SILICONFLOW_API_KEY=sk-...   # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
+
+还没有硅基流动 key 的话，可以用邀请码 [`hoNe8cdD`](https://cloud.siliconflow.cn/i/hoNe8cdD) 注册，体验推荐的国内友好 preset。
 
 查看或更新当前配置：
 

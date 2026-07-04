@@ -15,6 +15,7 @@
   <a href="https://go.dev/"><img alt="Go 1.26+" src="https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/DuckInAShirt/leetmate?style=for-the-badge" /></a>
   <a href="https://github.com/DuckInAShirt/homebrew-tap"><img alt="Homebrew tap" src="https://img.shields.io/badge/Homebrew-DuckInAShirt%2Ftap-FBB040?style=for-the-badge&logo=homebrew&logoColor=white" /></a>
+  <a href="https://cloud.siliconflow.cn/i/hoNe8cdD"><img alt="SiliconFlow invite code hoNe8cdD" src="https://img.shields.io/badge/SiliconFlow-hoNe8cdD-7C3AED?style=for-the-badge" /></a>
 </p>
 
 <p align="center">
@@ -94,6 +95,8 @@ Then put the corresponding API key in `~/.config/leetmate/.env`:
 ```dotenv
 SILICONFLOW_API_KEY=sk-...   # or GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
+
+Need a SiliconFlow key? You can register with invite code [`hoNe8cdD`](https://cloud.siliconflow.cn/i/hoNe8cdD) to try the recommended China-friendly preset.
 
 Inspect or update the resolved config:
 
