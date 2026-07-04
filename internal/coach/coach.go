@@ -79,10 +79,12 @@ func (c *Coach) buildMessages(req Request) []llm.Message {
 	}
 
 	msgs := []llm.Message{{Role: llm.RoleSystem, Content: sys}}
-	for _, h := range req.History {
-		// Only carry user/assistant turns into context.
-		if h.Role == domain.RoleUser || h.Role == domain.RoleAssistant {
-			msgs = append(msgs, llm.Message{Role: llm.Role(h.Role), Content: h.Content})
+	if req.Tier != domain.TierReview {
+		for _, h := range req.History {
+			// Only carry user/assistant turns into context.
+			if h.Role == domain.RoleUser || h.Role == domain.RoleAssistant {
+				msgs = append(msgs, llm.Message{Role: llm.Role(h.Role), Content: h.Content})
+			}
 		}
 	}
 	msgs = append(msgs, llm.Message{Role: llm.RoleUser, Content: b.String()})

@@ -126,3 +126,30 @@ func TestHistoryIsCarried(t *testing.T) {
 		t.Errorf("history not carried correctly: %+v", f.msgs[1])
 	}
 }
+
+func TestReviewTierSkipsHistory(t *testing.T) {
+	f := &fakeProvider{}
+	c := New(f)
+	_, _ = c.Stream(context.Background(), Request{
+		Tier: domain.TierReview,
+		Problem: domain.Problem{ProblemMeta: domain.ProblemMeta{
+			FrontendID: "1", Title: "Two Sum", Difficulty: domain.DifficultyEasy,
+		}},
+		Code: "func twoSum(nums []int, target int) []int { return []int{} }",
+		Lang: "go",
+		History: []domain.Conversation{
+			{Role: domain.RoleAssistant, Content: "old review about stale code"},
+		},
+	})
+	if len(f.msgs) != 2 {
+		t.Fatalf("expected review to send only system+current user context, got %d", len(f.msgs))
+	}
+	for _, msg := range f.msgs {
+		if strings.Contains(msg.Content, "old review about stale code") {
+			t.Fatalf("review should not carry stale history: %+v", f.msgs)
+		}
+	}
+	if !strings.Contains(f.msgs[1].Content, "func twoSum") {
+		t.Fatalf("review should include current code: %s", f.msgs[1].Content)
+	}
+}
