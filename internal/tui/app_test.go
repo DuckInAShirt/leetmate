@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,6 +26,7 @@ func keypress(s string) tea.KeyMsg {
 }
 
 func enter() tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyEnter} }
+func esc() tea.KeyMsg   { return tea.KeyMsg{Type: tea.KeyEsc} }
 
 // apply sends a message to m and asserts the result stays a Model.
 func apply(t *testing.T, m Model, msg tea.Msg) Model {
@@ -190,6 +192,77 @@ func TestPracticeDifficultyEN(t *testing.T) {
 	}
 }
 
+func TestPracticeEditorAutoCompletesPairs(t *testing.T) {
+	m := New(Deps{Config: cfg("zh")})
+	pm := newPracticeModel(Deps{Config: cfg("zh")}, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	m.practice = &pm
+	m.view = viewPractice
+
+	res, _ := m.Update(keypress("i"))
+	m = res.(Model)
+	if !m.practice.editing {
+		t.Fatal("e should enter in-app editing mode")
+	}
+
+	m = apply(t, m, keypress("("))
+	if got := m.practice.editorValue(); got != "()" {
+		t.Fatalf("editor value after (: %q", got)
+	}
+	m = apply(t, m, keypress("x"))
+	if got := m.practice.editorValue(); got != "(x)" {
+		t.Fatalf("editor value after x: %q", got)
+	}
+	m = apply(t, m, keypress(")"))
+	if got := m.practice.editorValue(); got != "(x)" {
+		t.Fatalf("closing pair should be skipped, got %q", got)
+	}
+}
+
+func TestPracticeEditorTabInsertsSpaces(t *testing.T) {
+	m := New(Deps{Config: cfg("zh")})
+	pm := newPracticeModel(Deps{Config: cfg("zh")}, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	m.practice = &pm
+	m.view = viewPractice
+
+	res, _ := m.Update(keypress("i"))
+	m = res.(Model)
+	m = apply(t, m, tea.KeyMsg{Type: tea.KeyTab})
+	if got := m.practice.editorValue(); got != "    " {
+		t.Fatalf("tab should insert four spaces, got %q", got)
+	}
+}
+
+func TestPracticeEditorSaveOnEsc(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "solution.go")
+	if err := os.WriteFile(path, []byte("func f() {}"), 0o644); err != nil {
+		t.Fatalf("write code: %v", err)
+	}
+	deps := Deps{Config: cfg("zh")}
+	m := New(deps)
+	pm := newPracticeModel(deps, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}, CodePath: path})
+	m.practice = &pm
+	m.view = viewPractice
+
+	res, _ := m.Update(keypress("i"))
+	m = res.(Model)
+	m = apply(t, m, keypress("("))
+	res, cmd := m.Update(esc())
+	m = res.(Model)
+	m = runCmds(t, m, cmd)
+
+	if m.practice.editing {
+		t.Fatal("esc should save and exit editing mode")
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read saved code: %v", err)
+	}
+	if got := string(b); got != "func f() {}()" {
+		t.Fatalf("saved code = %q", got)
+	}
+}
+
 // fakeLLM implements llm.Provider for testing the coaching pipeline.
 type fakeLLM struct{ chunks []string }
 
@@ -298,20 +371,29 @@ func TestAnswerConfirmGate(t *testing.T) {
 	}
 }
 
-func TestExpandCanSwitchBetweenErrorAndCoach(t *testing.T) {
+func TestExpandCanSwitchStatementErrorAndCoach(t *testing.T) {
 	deps := Deps{Config: cfg("zh")}
 	m := New(deps)
-	pm := newPracticeModel(deps, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
+	prob := domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}, Content: "题面第一行\n题面第二行"}
+	pm := newPracticeModel(deps, prob)
 	pm.fullErr = "compile error"
 	pm.coachText = "review text"
-	pm.focus = focusCode
 	m.practice = &pm
 	m.view = viewPractice
 
 	res, _ := m.Update(keypress("o"))
 	m = res.(Model)
-	if !m.practice.expanded || m.practice.expandKind != "error" {
-		t.Fatalf("code focus should open error detail, expanded=%v kind=%q", m.practice.expanded, m.practice.expandKind)
+	if !m.practice.expanded || m.practice.expandKind != "statement" {
+		t.Fatalf("o should open statement detail, expanded=%v kind=%q", m.practice.expanded, m.practice.expandKind)
+	}
+	if got := m.practice.expandVP.View(); !strings.Contains(got, "题面第二行") {
+		t.Fatalf("statement detail missing content: %q", got)
+	}
+
+	res, _ = m.Update(keypress("tab"))
+	m = res.(Model)
+	if m.practice.expandKind != "error" {
+		t.Fatalf("tab should switch to error detail, got %q", m.practice.expandKind)
 	}
 	if got := m.practice.expandVP.View(); !strings.Contains(got, "compile error") {
 		t.Fatalf("error detail missing content: %q", got)
@@ -325,26 +407,17 @@ func TestExpandCanSwitchBetweenErrorAndCoach(t *testing.T) {
 	if got := m.practice.expandVP.View(); !strings.Contains(got, "review text") {
 		t.Fatalf("coach detail missing content: %q", got)
 	}
-
-	m.practice.expanded = false
-	m.practice.focus = focusCoach
-	res, _ = m.Update(keypress("o"))
-	m = res.(Model)
-	if m.practice.expandKind != "coach" {
-		t.Fatalf("coach focus should open coach detail, got %q", m.practice.expandKind)
-	}
 }
 
 func TestExpandedCoachDetailStreamsChunks(t *testing.T) {
 	deps := Deps{Config: cfg("zh")}
 	m := New(deps)
 	pm := newPracticeModel(deps, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
-	pm.focus = focusCoach
+	pm.coaching = true
 	m.practice = &pm
 	m.view = viewPractice
 
-	res, _ := m.Update(keypress("o"))
-	m = res.(Model)
+	m.practice.openExpandKind("coach")
 	if !m.practice.expanded || m.practice.expandKind != "coach" {
 		t.Fatalf("expected expanded coach detail, expanded=%v kind=%q", m.practice.expanded, m.practice.expandKind)
 	}
@@ -361,12 +434,11 @@ func TestExpandedCoachDetailStreamsChunks(t *testing.T) {
 
 func TestExpandedCoachDetailWrapsLongLines(t *testing.T) {
 	pm := newPracticeModel(Deps{Config: cfg("zh")}, domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s"}})
-	pm.focus = focusCoach
 	pm.expandVP.Width = 20
 	pm.expandVP.Height = 10
 	pm.coachText = "abcdefghijklmnopqrstuvwxyz"
 
-	pm.openExpandForFocus()
+	pm.openExpandKind("coach")
 
 	if !pm.expanded || pm.expandKind != "coach" {
 		t.Fatalf("expected coach detail, expanded=%v kind=%q", pm.expanded, pm.expandKind)

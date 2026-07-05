@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"unicode"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mattn/go-runewidth"
@@ -23,19 +25,26 @@ const (
 // (scrollable), and the keys to edit / test / submit. The coaching panel (M1)
 // will be added alongside this view.
 type practiceModel struct {
-	problem   domain.Problem
-	code      string
-	statement string
+	problem       domain.Problem
+	code          string
+	statement     string
+	fullStatement string
 
 	d      dict
 	gaveUp bool
 	status string
 
-	viewport viewport.Model // code
+	viewport viewport.Model // highlighted code preview
+	editor   textarea.Model // in-app code editor
 	coachVP  viewport.Model // coaching reply
 	expandVP viewport.Model // full-screen detail (error / coach reply)
 	ready    bool
 	focus    int // focusCode / focusCoach: which pane scroll keys act on
+
+	editing       bool
+	dirty         bool
+	saving        bool
+	exitAfterSave bool
 
 	coachText     string
 	coachTier     domain.Tier
@@ -57,13 +66,15 @@ func newPracticeModel(deps Deps, p domain.Problem) practiceModel {
 			m.code = string(b)
 		}
 	}
-	// Clean the statement (strip markdown noise / title heading) and keep it as
-	// a short multi-line summary above the code viewport.
-	m.statement = cleanStatement(p.Content, 10)
+	// Clean the statement (strip markdown noise / title heading). Keep a short
+	// summary above the code viewport and the full text for expand mode.
+	m.fullStatement = cleanStatement(p.Content, 0)
+	m.statement = truncateLines(m.fullStatement, 10)
 	m.viewport = viewport.New(80, 20)
+	m.editor = newCodeEditor(m.code)
 	m.coachVP = viewport.New(80, 8)
 	m.expandVP = viewport.New(80, 20)
-	m.viewport.SetContent(m.code)
+	m.setCodeContent(deps)
 	m.ready = true
 	return m
 }
@@ -111,6 +122,8 @@ func (m *practiceModel) resize(w, h int) {
 	}
 	m.viewport.Width = vw
 	m.viewport.Height = codeH
+	m.editor.SetWidth(vw)
+	m.editor.SetHeight(codeH)
 	m.coachVP.Width = vw
 	m.coachVP.Height = coachH
 	// Expand pane covers nearly the whole screen.
@@ -125,12 +138,154 @@ func (m *practiceModel) resize(w, h int) {
 }
 
 func (m *practiceModel) reloadCode(deps Deps) {
-	if m.problem.CodePath == "" {
+	if m.problem.CodePath == "" || m.editing {
 		return
 	}
 	if b, err := os.ReadFile(m.problem.CodePath); err == nil {
 		m.code = string(b)
-		m.viewport.SetContent(m.code)
+		m.editor.SetValue(m.code)
+		m.dirty = false
+		m.setCodeContent(deps)
+	}
+}
+
+func (m *practiceModel) setCodeContent(deps Deps) {
+	m.viewport.SetContent(highlightCode(m.code, codeLanguage(deps, m.problem.CodePath)))
+}
+
+func (m *practiceModel) startEditing() tea.Cmd {
+	m.editing = true
+	m.focus = focusCode
+	return m.editor.Focus()
+}
+
+func (m *practiceModel) stopEditing() {
+	m.editing = false
+	m.saving = false
+	m.exitAfterSave = false
+	m.editor.Blur()
+}
+
+func (m *practiceModel) editorValue() string { return m.editor.Value() }
+
+func (m *practiceModel) saveEditor(exitAfter bool) tea.Cmd {
+	if m.saving {
+		return nil
+	}
+	m.saving = true
+	m.exitAfterSave = exitAfter
+	return saveCodeCmd(m.problem.CodePath, m.editorValue())
+}
+
+func (m *practiceModel) applyEditorSaved(deps Deps, msg editorSavedMsg) {
+	m.saving = false
+	if msg.err != nil {
+		m.status = m.d.t("practice.saveError") + summarizeErr(msg.err.Error())
+		return
+	}
+	m.code = msg.content
+	m.dirty = false
+	m.status = m.d.t("practice.saved")
+	m.setCodeContent(deps)
+	if m.exitAfterSave {
+		m.stopEditing()
+	}
+	m.exitAfterSave = false
+}
+
+func newCodeEditor(code string) textarea.Model {
+	ed := textarea.New()
+	ed.Prompt = ""
+	ed.ShowLineNumbers = true
+	ed.EndOfBufferCharacter = ' '
+	ed.MaxHeight = 10000
+	ed.MaxWidth = 0
+	ed.FocusedStyle = codeEditorFocusedStyle()
+	ed.BlurredStyle = codeEditorBlurredStyle()
+	ed.SetValue(code)
+	return ed
+}
+
+func (m *practiceModel) insertEditorText(s string) {
+	m.editor.InsertString(s)
+	m.dirty = m.editorValue() != m.code
+}
+
+func (m *practiceModel) updateEditorKey(key tea.KeyMsg) tea.Cmd {
+	before := m.editorValue()
+	if len(key.Runes) == 1 {
+		r := key.Runes[0]
+		if m.skipClosingPair(r) || m.insertPair(r) {
+			m.dirty = m.editorValue() != m.code
+			return nil
+		}
+	}
+	var cmd tea.Cmd
+	m.editor, cmd = m.editor.Update(key)
+	m.dirty = m.editorValue() != before || m.dirty
+	return cmd
+}
+
+func (m *practiceModel) insertPair(r rune) bool {
+	close, ok := pairClose(r)
+	if !ok {
+		return false
+	}
+	col := m.editorCursorColumn()
+	m.editor.InsertString(string([]rune{r, close}))
+	m.editor.SetCursor(col + 1)
+	return true
+}
+
+func (m *practiceModel) skipClosingPair(r rune) bool {
+	if !isPairCloser(r) {
+		return false
+	}
+	line, col := m.editorLineAndColumn()
+	if line < 0 || line >= len(strings.Split(m.editorValue(), "\n")) {
+		return false
+	}
+	runes := []rune(strings.Split(m.editorValue(), "\n")[line])
+	if col >= len(runes) || runes[col] != r {
+		return false
+	}
+	m.editor.SetCursor(col + 1)
+	return true
+}
+
+func (m *practiceModel) editorLineAndColumn() (int, int) {
+	li := m.editor.LineInfo()
+	return m.editor.Line(), li.StartColumn + li.ColumnOffset
+}
+
+func (m *practiceModel) editorCursorColumn() int {
+	_, col := m.editorLineAndColumn()
+	return col
+}
+
+func pairClose(r rune) (rune, bool) {
+	switch r {
+	case '(':
+		return ')', true
+	case '[':
+		return ']', true
+	case '{':
+		return '}', true
+	case '"':
+		return '"', true
+	case '\'':
+		return '\'', true
+	default:
+		return 0, false
+	}
+}
+
+func isPairCloser(r rune) bool {
+	switch r {
+	case ')', ']', '}', '"', '\'':
+		return true
+	default:
+		return false
 	}
 }
 
@@ -218,11 +373,11 @@ func (m *practiceModel) sectionHeader(key string, focused bool) string {
 // output and coach output exist, `o` opens the focused pane and expand mode can
 // switch between available detail targets.
 func (m *practiceModel) openExpandForFocus() {
-	kind := "coach"
-	if m.focus == focusCode && m.fullErr != "" {
+	kind := "statement"
+	if m.fullStatement == "" && m.fullErr != "" {
 		kind = "error"
-	} else if m.coachText == "" && m.fullErr != "" {
-		kind = "error"
+	} else if m.fullStatement == "" && (m.coachText != "" || m.coaching) {
+		kind = "coach"
 	}
 	m.openExpandKind(kind)
 }
@@ -243,22 +398,28 @@ func (m *practiceModel) cycleExpand() {
 
 func (m *practiceModel) expandKinds() []string {
 	var kinds []string
+	if m.fullStatement != "" {
+		kinds = append(kinds, "statement")
+	}
 	if m.fullErr != "" {
 		kinds = append(kinds, "error")
 	}
-	if m.coachText != "" {
+	if m.coachText != "" || m.coaching {
 		kinds = append(kinds, "coach")
 	}
 	if len(kinds) == 0 {
-		kinds = append(kinds, "coach")
+		kinds = append(kinds, "statement")
 	}
 	return kinds
 }
 
 func (m *practiceModel) openExpandKind(kind string) {
-	m.expandKind = "coach"
-	if kind == "error" && m.fullErr != "" {
-		m.expandKind = "error"
+	m.expandKind = "statement"
+	for _, k := range m.expandKinds() {
+		if k == kind {
+			m.expandKind = kind
+			break
+		}
 	}
 	m.expanded = true
 	m.setExpandContent()
@@ -266,8 +427,11 @@ func (m *practiceModel) openExpandKind(kind string) {
 }
 
 func (m *practiceModel) setExpandContent() {
-	content := m.fullErr
-	if m.expandKind == "coach" {
+	content := wrapWidth(m.fullStatement, m.expandContentWidth())
+	switch m.expandKind {
+	case "error":
+		content = m.fullErr
+	case "coach":
 		content = wrapWidth(m.coachText, m.expandContentWidth())
 	}
 	m.expandVP.SetContent(content)
@@ -282,9 +446,12 @@ func (m *practiceModel) expandContentWidth() int {
 }
 
 func (m *practiceModel) renderExpand() string {
-	title := m.d.t("expand.coach")
-	if m.expandKind == "error" {
+	title := m.d.t("expand.statement")
+	switch m.expandKind {
+	case "error":
 		title = m.d.t("expand.error")
+	case "coach":
+		title = m.d.t("expand.coach")
 	}
 	return titleStyle.Render(title) + subtleStyle.Render("  · "+m.d.t("expand.hint")) + "\n\n" +
 		m.expandVP.View()
@@ -330,12 +497,16 @@ func (m *practiceModel) view() string {
 		b.WriteString(subtleStyle.Render(wrapWidth(m.statement, width)) + "\n")
 	}
 
-	// Code section (focusable: scroll keys act on the ▸-marked pane).
-	b.WriteString(m.sectionHeader("section.code", m.focus == focusCode) + "\n")
-	b.WriteString(m.viewport.View())
+	// Code section.
+	b.WriteString(m.sectionHeader("section.code", false) + "\n")
+	if m.editing {
+		b.WriteString(m.editor.View())
+	} else {
+		b.WriteString(m.viewport.View())
+	}
 
-	// Coach section (focusable).
-	b.WriteString("\n" + m.sectionHeader("section.coach", m.focus == focusCoach) + "\n")
+	// Coach section.
+	b.WriteString("\n" + m.sectionHeader("section.coach", false) + "\n")
 	m.setCoachContent()
 	b.WriteString(m.coachVP.View())
 
@@ -354,7 +525,11 @@ func (m *practiceModel) view() string {
 		b.WriteString("\n" + style.Render(truncateWidth(firstLine(m.status), sw)))
 	}
 
-	b.WriteString(hintStyle.Render("\n" + m.d.t("practice.hint")))
+	hint := m.d.t("practice.hint")
+	if m.editing {
+		hint = m.d.t("practice.editorHint")
+	}
+	b.WriteString(hintStyle.Render("\n" + hint))
 	return b.String()
 }
 
@@ -403,7 +578,7 @@ func cleanStatement(s string, maxLines int) string {
 			continue
 		}
 		out = append(out, l)
-		if len(out) >= maxLines {
+		if maxLines > 0 && len(out) >= maxLines {
 			break
 		}
 	}
@@ -417,6 +592,17 @@ func stripMarkdown(s string) string {
 	s = mdBold.ReplaceAllString(s, "$1")
 	s = mdBacktick.ReplaceAllString(s, "$1")
 	return s
+}
+
+func truncateLines(s string, maxLines int) string {
+	if maxLines <= 0 || s == "" {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	if len(lines) <= maxLines {
+		return s
+	}
+	return strings.Join(lines[:maxLines], "\n")
 }
 
 func countLines(s string) int {
@@ -504,17 +690,26 @@ func truncateWidth(s string, maxCells int) string {
 func stripHTML(s string) string {
 	var b strings.Builder
 	inTag := false
-	for _, r := range s {
+	runes := []rune(s)
+	for i, r := range runes {
 		switch {
-		case r == '<':
+		case r == '<' && looksLikeHTMLTagStart(runes, i+1):
 			inTag = true
-		case r == '>':
+		case r == '>' && inTag:
 			inTag = false
 		case !inTag:
 			b.WriteRune(r)
 		}
 	}
 	return b.String()
+}
+
+func looksLikeHTMLTagStart(runes []rune, i int) bool {
+	if i >= len(runes) {
+		return false
+	}
+	r := runes[i]
+	return r == '/' || r == '!' || unicode.IsLetter(r)
 }
 
 func runtimeSuffix(r domain.SubmitResult) string {

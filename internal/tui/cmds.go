@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,6 +33,11 @@ type testResultMsg struct {
 }
 
 type editorDoneMsg struct{ err error }
+
+type editorSavedMsg struct {
+	content string
+	err     error
+}
 
 // --- coaching messages ---
 
@@ -92,6 +98,16 @@ func testCmd(deps Deps, qid string) tea.Cmd {
 	return func() tea.Msg {
 		res, err := deps.Leetgo.Test(context.Background(), qid)
 		return testResultMsg{result: res, err: err}
+	}
+}
+
+func saveCodeCmd(path, content string) tea.Cmd {
+	return func() tea.Msg {
+		if path == "" {
+			return editorSavedMsg{content: content}
+		}
+		err := os.WriteFile(path, []byte(content), 0o644)
+		return editorSavedMsg{content: content, err: err}
 	}
 }
 

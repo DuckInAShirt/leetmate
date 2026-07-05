@@ -37,6 +37,13 @@ func TestCleanStatement(t *testing.T) {
 	}
 }
 
+func TestCleanStatementKeepsInequalityConstraints(t *testing.T) {
+	out := cleanStatement("提示:\n- 1 <= s.length <= 3 * 10^4", 0)
+	if !strings.Contains(out, "<= s.length <=") {
+		t.Fatalf("inequality constraint should survive markdown/html cleanup, got %q", out)
+	}
+}
+
 func TestWrapWidthRespectsDoubleWidth(t *testing.T) {
 	// 6 CJK runes = 12 display cells; wrapping at 10 cells must break.
 	out := wrapWidth("中文中文中文", 10)

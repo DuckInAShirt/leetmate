@@ -1,6 +1,9 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/lipgloss"
+)
 
 // Centralized styles. These are intentionally simple for the MVP; the M4
 // polish pass turns them into the showy palette that sells the demo gif.
@@ -67,3 +70,29 @@ var (
 	homeTipStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#A5B4FC"))
 	homeStatusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#94A3B8"))
 )
+
+func codeEditorFocusedStyle() textarea.Style {
+	return textarea.Style{
+		Base:             lipgloss.NewStyle(),
+		CursorLine:       lipgloss.NewStyle().Background(lipgloss.Color("#111827")),
+		CursorLineNumber: lipgloss.NewStyle().Foreground(lipgloss.Color("#FDE68A")),
+		EndOfBuffer:      lipgloss.NewStyle().Foreground(lipgloss.Color("#0F172A")),
+		LineNumber:       lipgloss.NewStyle().Foreground(lipgloss.Color("#64748B")),
+		Placeholder:      subtleStyle,
+		Prompt:           subtleStyle,
+		Text:             normalStyle,
+	}
+}
+
+func codeEditorBlurredStyle() textarea.Style {
+	return textarea.Style{
+		Base:             lipgloss.NewStyle(),
+		CursorLine:       normalStyle,
+		CursorLineNumber: subtleStyle,
+		EndOfBuffer:      lipgloss.NewStyle().Foreground(lipgloss.Color("#0F172A")),
+		LineNumber:       subtleStyle,
+		Placeholder:      subtleStyle,
+		Prompt:           subtleStyle,
+		Text:             normalStyle,
+	}
+}
