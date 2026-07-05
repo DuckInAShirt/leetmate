@@ -298,6 +298,9 @@ func (m *practiceModel) applySubmit(msg submitResultMsg) {
 	if msg.result.Accepted {
 		m.fullErr = ""
 		m.status = m.d.t("practice.accepted") + runtimeSuffix(msg.result)
+		if msg.persistErr != nil {
+			m.status += " · " + m.d.t("practice.reviewSaveError")
+		}
 		return
 	}
 	// Wrong answer: keep the raw verdict (case diff etc.) for expand.
@@ -307,6 +310,9 @@ func (m *practiceModel) applySubmit(msg submitResultMsg) {
 		v = m.d.t("practice.notAccepted")
 	}
 	m.status = "✗ " + v
+	if msg.persistErr != nil {
+		m.status += " · " + m.d.t("practice.reviewSaveError")
+	}
 }
 
 func (m *practiceModel) applyTest(msg testResultMsg) {

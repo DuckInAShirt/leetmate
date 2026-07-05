@@ -113,9 +113,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = ""
 		return m, nil
 
+	case reviewEmptyMsg:
+		m.busy = false
+		m.notice = m.d.t("menu.reviewEmpty")
+		return m, nil
+
 	case submitResultMsg:
 		if m.practice != nil {
 			m.practice.applySubmit(msg)
+		}
+		if msg.persistErr != nil {
+			m.err = m.d.t("practice.reviewSaveError") + ": " + msg.persistErr.Error()
 		}
 		if msg.result.Accepted && m.practice != nil && m.practice.planCtx != nil {
 			pc := *m.practice.planCtx
@@ -236,7 +244,10 @@ func (m Model) updateMenu(str string) (tea.Model, tea.Cmd) {
 				m.err = ""
 			}
 		case 2: // Due for review
-			m.notice = m.d.t("menu.reviewNotice")
+			m.busy = true
+			m.err = ""
+			m.notice = ""
+			return m, reviewPickCmd(m.deps)
 		case 3: // Quit
 			return m, tea.Quit
 		}
