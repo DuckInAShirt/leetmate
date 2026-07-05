@@ -48,15 +48,15 @@ var messages = map[string]map[Lang]string{
 	"menu.today":       {LangZH: "今日题目", LangEN: "Today's problem"},
 	"menu.today.desc":  {LangZH: "LeetCode 每日一题", LangEN: "the LeetCode daily"},
 	"menu.review":      {LangZH: "待复习", LangEN: "Due for review"},
-	"menu.review.desc": {LangZH: "FSRS 复习队列（M3）", LangEN: "FSRS review queue (M3)"},
+	"menu.review.desc": {LangZH: "打开最早到期题", LangEN: "Open earliest due problem"},
 	"menu.quit":        {LangZH: "退出", LangEN: "Quit"},
 	"menu.hint": {
 		LangZH: "↑/↓ 选择 · 回车打开 · q 退出",
 		LangEN: "↑/↓ select · enter open · q quit",
 	},
-	"menu.reviewNotice": {
-		LangZH: "复习队列将在 M3 推出。",
-		LangEN: "Review queue arrives in M3.",
+	"menu.reviewEmpty": {
+		LangZH: "暂无到期复习。",
+		LangEN: "No reviews due.",
 	},
 	"home.tips.title": {
 		LangZH: "上手提示：",
@@ -110,6 +110,10 @@ var messages = map[string]map[Lang]string{
 	"practice.saveError": {
 		LangZH: "⚠ 保存失败：",
 		LangEN: "⚠ save failed: ",
+	},
+	"practice.reviewSaveError": {
+		LangZH: "复习记录保存失败",
+		LangEN: "review record save failed",
 	},
 	"expand.hint": {
 		LangZH: "Tab/←/→ 切换 · o/esc 收起 · ↑/↓ 或 j/k 滚动",

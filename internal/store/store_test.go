@@ -42,7 +42,7 @@ func TestProblemMetaRoundTrip(t *testing.T) {
 func TestAttemptInsertAndList(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
-	a := domain.Attempt{Slug: "x", FinishedAt: time.Now(), AC: true, RuntimeMS: 5, Rating: domain.RatingGood}
+	a := domain.Attempt{Slug: "x", FinishedAt: time.Now(), AC: true, RuntimeMS: 5, MemoryKB: 1024, Rating: domain.RatingGood, GaveUp: true}
 	id, err := s.InsertAttempt(ctx, a)
 	if err != nil || id == 0 {
 		t.Fatalf("Insert: id=%d err=%v", id, err)
@@ -51,7 +51,7 @@ func TestAttemptInsertAndList(t *testing.T) {
 	if err != nil || len(list) != 1 {
 		t.Fatalf("List: %d err=%v", len(list), err)
 	}
-	if !list[0].AC || list[0].RuntimeMS != 5 {
+	if !list[0].AC || list[0].RuntimeMS != 5 || list[0].MemoryKB != 1024 || list[0].Rating != domain.RatingGood || !list[0].GaveUp {
 		t.Errorf("attempt mismatch: %+v", list[0])
 	}
 }
@@ -96,11 +96,14 @@ func TestCardUpsertAndDue(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Date(2026, 7, 2, 12, 0, 0, 0, time.UTC)
-	due := now.Add(-time.Hour)       // due 1h ago
+	due := now.Add(-time.Hour)        // due 1h ago
 	future := now.Add(24 * time.Hour) // not due
 
 	for slug, when := range map[string]time.Time{"due1": due, "later": future} {
-		if err := s.UpsertCard(ctx, domain.Card{Slug: slug, DueAt: when, Reps: 1}); err != nil {
+		if err := s.UpsertCard(ctx, domain.Card{
+			Slug: slug, FSRSState: []byte(`{"version":1}`), DueAt: when, Reps: 1,
+			LastReviewAt: now.Add(-24 * time.Hour), Stability: 2.5, Difficulty: 4.5,
+		}); err != nil {
 			t.Fatalf("Upsert %s: %v", slug, err)
 		}
 	}
@@ -111,6 +114,9 @@ func TestCardUpsertAndDue(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].Slug != "due1" {
 		t.Errorf("expected only due1 due, got %+v", got)
+	}
+	if string(got[0].FSRSState) == "" || got[0].Stability != 2.5 || got[0].Difficulty != 4.5 || got[0].LastReviewAt.IsZero() {
+		t.Errorf("card round-trip lost scheduler fields: %+v", got[0])
 	}
 
 	// Re-scheduling due1 into the future removes it from the due set.

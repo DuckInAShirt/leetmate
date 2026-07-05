@@ -26,14 +26,14 @@ LeetMate is a terminal-based **LeetCode coaching TUI** built for interview prep.
 
 ## Why
 
-Most LeetCode tools either hand you problems or hand you full solutions. LeetMate sits in the middle: press `1` for a high-level Hint, `2` for a targeted Nudge, or `3` for a Review of your code. The first three tiers **never output a complete solution**. Only `4` (Answer), with a second confirmation, can reveal a full implementation. Practiced problems are scheduled into an FSRS-style review queue (in progress).
+Most LeetCode tools either hand you problems or hand you full solutions. LeetMate sits in the middle: press `1` for a high-level Hint, `2` for a targeted Nudge, or `3` for a Review of your code. The first three tiers **never output a complete solution**. Only `4` (Answer), with a second confirmation, can reveal a full implementation. Practiced problems are scheduled into a lightweight FSRS-style review queue; full FSRS integration remains planned.
 
 ## Features
 
 - 🧠 **Socratic coaching** — Hint / Nudge / Review / Answer tiers, with guardrails that keep the first three tiers from leaking full code
 - 📋 **Study plans** — Built-in Hot 100 and Interview 150, progress tracking, auto-next flow, and custom YAML plans
 - 🧩 **Powered by [leetgo](https://github.com/j178/leetgo)** — Uses leetgo for code scaffolding, local tests, and submissions
-- 🔁 **Spaced review** — FSRS scheduling is in progress
+- 🔁 **Spaced review** — Lightweight FSRS-style scheduling queues practiced problems for review
 - 🎛️ **Model presets** — Switch Gemini / SiliconFlow / Groq / DeepSeek with one `preset`; put secrets in `.env`
 - 🗳️ **Local-first data** — Attempts, conversations, and progress live in local SQLite
 - 🌐 **Chinese and English UI** — One config value switches the interface language
@@ -41,7 +41,7 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 
 ## Status
 
-🧪 **Alpha**. Coaching and study-plan flows are usable; the FSRS review queue is still in progress.
+🧪 **Alpha**. Coaching, study-plan flows, and a lightweight FSRS-style review queue are usable; full FSRS tuning is still planned.
 
 | Module | Status |
 |--------|--------|
@@ -49,7 +49,7 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 | LLM coaching (four tiers + guardrails + streaming) | ✅ |
 | Study plans + progress | ✅ |
 | Model presets | ✅ |
-| FSRS spaced review | 🚧 In progress |
+| FSRS-style spaced review MVP | ✅ |
 | `leetmate init` config generator | ✅ |
 
 ## Requirements

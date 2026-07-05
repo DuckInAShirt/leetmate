@@ -89,13 +89,24 @@ func TestMenuNavPlansSafeWithoutService(t *testing.T) {
 	}
 }
 
-func TestMenuNavReviewNotice(t *testing.T) {
-	m := New(Deps{Config: cfg("zh")})
+func TestMenuNavReviewEmpty(t *testing.T) {
+	dir := t.TempDir()
+	st, err := store.Open(filepath.Join(dir, "t.db"))
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	defer st.Close()
+	m := New(Deps{Config: cfg("zh"), Store: st})
 	m = apply(t, m, keypress("j")) // 1 plans
 	m = apply(t, m, keypress("j")) // 2 review
-	m = apply(t, m, enter())
-	if !strings.Contains(m.notice, "M3") {
-		t.Errorf("enter on review should set notice, got %q", m.notice)
+	res, cmd := m.Update(enter())
+	m = res.(Model)
+	if !m.busy || cmd == nil {
+		t.Fatalf("enter on review should start loading, busy=%v cmd=%v", m.busy, cmd)
+	}
+	m = runCmds(t, m, cmd)
+	if !strings.Contains(m.notice, "暂无到期复习") {
+		t.Errorf("empty review queue should set notice, got %q", m.notice)
 	}
 }
 

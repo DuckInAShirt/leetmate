@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/DuckInAShirt/leetmate/internal/coach"
 	"github.com/DuckInAShirt/leetmate/internal/domain"
 	"github.com/DuckInAShirt/leetmate/internal/llm"
+	"github.com/DuckInAShirt/leetmate/internal/review"
 )
 
 func timeNow() time.Time { return time.Now() }
@@ -23,8 +25,9 @@ type pickResultMsg struct {
 }
 
 type submitResultMsg struct {
-	result domain.SubmitResult
-	err    error
+	result     domain.SubmitResult
+	err        error
+	persistErr error
 }
 
 type testResultMsg struct {
@@ -38,6 +41,8 @@ type editorSavedMsg struct {
 	content string
 	err     error
 }
+
+type reviewEmptyMsg struct{}
 
 // --- coaching messages ---
 
@@ -86,11 +91,22 @@ func submitCmd(deps Deps, slug, qid string, gaveUp bool) tea.Cmd {
 		if err != nil {
 			return submitResultMsg{err: err}
 		}
-		_, _ = deps.Store.InsertAttempt(ctx, domain.Attempt{
-			Slug: slug, FinishedAt: timeNow(), AC: res.Accepted,
-			RuntimeMS: res.RuntimeMS, MemoryKB: res.MemoryKB, GaveUp: gaveUp,
-		})
-		return submitResultMsg{result: res}
+		now := timeNow()
+		rating := review.RatingForSubmit(res.Accepted, gaveUp)
+		var persistErr error
+		if _, persistErr = deps.Store.InsertAttempt(ctx, domain.Attempt{
+			Slug: slug, FinishedAt: now, AC: res.Accepted,
+			RuntimeMS: res.RuntimeMS, MemoryKB: res.MemoryKB, Rating: rating, GaveUp: gaveUp,
+		}); persistErr == nil {
+			card, _, err := deps.Store.GetCard(ctx, slug)
+			if err != nil {
+				persistErr = err
+			} else {
+				card.Slug = slug
+				persistErr = deps.Store.UpsertCard(ctx, review.Rate(card, rating, now))
+			}
+		}
+		return submitResultMsg{result: res, persistErr: persistErr}
 	}
 }
 
@@ -98,6 +114,32 @@ func testCmd(deps Deps, qid string) tea.Cmd {
 	return func() tea.Msg {
 		res, err := deps.Leetgo.Test(context.Background(), qid)
 		return testResultMsg{result: res, err: err}
+	}
+}
+
+func reviewPickCmd(deps Deps) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		cards, err := deps.Store.DueCards(ctx, timeNow(), 1)
+		if err != nil {
+			return pickResultMsg{err: err}
+		}
+		if len(cards) == 0 {
+			return reviewEmptyMsg{}
+		}
+		card := cards[0]
+		qid := card.Slug
+		if meta, ok, err := deps.Store.GetProblemMeta(ctx, card.Slug); err != nil {
+			return pickResultMsg{err: err}
+		} else if ok && meta.FrontendID != "" {
+			qid = meta.FrontendID
+		}
+		p, err := deps.Leetgo.Pick(ctx, qid)
+		if err != nil {
+			return pickResultMsg{err: fmt.Errorf("review %s: %w", card.Slug, err)}
+		}
+		_ = deps.Store.UpsertProblemMeta(ctx, p.ProblemMeta)
+		return pickResultMsg{problem: p}
 	}
 }
 
