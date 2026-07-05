@@ -91,6 +91,16 @@ func TestStudyPlanProgress(t *testing.T) {
 	}
 }
 
+func TestGetCardMissingIsNotError(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	_, ok, err := s.GetCard(ctx, "missing")
+	if err != nil || ok {
+		t.Fatalf("GetCard missing: ok=%v err=%v", ok, err)
+	}
+}
+
 func TestCardUpsertAndDue(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
