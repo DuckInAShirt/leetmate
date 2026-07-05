@@ -142,6 +142,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case editorSavedMsg:
+		if m.practice != nil {
+			m.practice.applyEditorSaved(m.deps, msg)
+		}
+		return m, nil
+
 	case coachStartedMsg:
 		m.coachStream = msg.stream
 		if m.practice != nil {
@@ -265,15 +271,12 @@ func (m Model) practiceUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Scrolling and pane focus.
+	if p.editing {
+		return m.practiceEditorUpdate(key, str)
+	}
+
+	// Scrolling.
 	switch str {
-	case "tab":
-		if p.focus == focusCode {
-			p.focus = focusCoach
-		} else {
-			p.focus = focusCode
-		}
-		return m, nil
 	case "up", "k":
 		m.scrollFocused(p, -1, false)
 		return m, nil
@@ -291,10 +294,15 @@ func (m Model) practiceUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
 	switch str {
 	case "e":
 		return m, openEditor(m.deps, p.problem.CodePath)
+	case "i":
+		p.reloadCode(m.deps)
+		return m, p.startEditing()
 	case "t":
+		p.reloadCode(m.deps)
 		p.status = m.d.t("practice.testing")
 		return m, testCmd(m.deps, p.qid())
 	case "s":
+		p.reloadCode(m.deps)
 		p.status = m.d.t("practice.submitting")
 		return m, submitCmd(m.deps, p.problem.Slug, p.qid(), p.gaveUp)
 	case "1":
@@ -329,6 +337,21 @@ func (m Model) practiceUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
 	}
 	_ = key
 	return m, nil
+}
+
+func (m Model) practiceEditorUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
+	p := m.practice
+	switch str {
+	case "esc":
+		return m, p.saveEditor(true)
+	case "ctrl+s":
+		return m, p.saveEditor(false)
+	case "tab":
+		p.insertEditorText("    ")
+		return m, nil
+	}
+	cmd := p.updateEditorKey(key)
+	return m, cmd
 }
 
 // scrollFocused scrolls the focused pane (code or coach) by one line or half page.
