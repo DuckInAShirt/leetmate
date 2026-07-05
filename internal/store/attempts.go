@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/DuckInAShirt/leetmate/internal/domain"
@@ -75,7 +77,7 @@ func ptime(s string) time.Time {
 }
 
 func ignoreNoRows(err error) error {
-	if err.Error() == "sql: no rows" {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
 	return err
