@@ -54,7 +54,10 @@ type coachStartedMsg struct {
 	tier   domain.Tier
 }
 
-type coachChunkMsg struct{ text string }
+type coachChunkMsg struct {
+	text string
+	kind llm.ChunkKind
+}
 type coachDoneMsg struct{}
 type coachErrMsg struct{ err error }
 
@@ -186,6 +189,6 @@ func listenCoach(stream <-chan llm.Chunk) tea.Cmd {
 		if chunk.Err != nil {
 			return coachErrMsg{err: chunk.Err}
 		}
-		return coachChunkMsg{text: chunk.Text}
+		return coachChunkMsg{text: chunk.Text, kind: chunk.Kind}
 	}
 }

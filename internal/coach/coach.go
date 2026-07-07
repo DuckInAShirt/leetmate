@@ -38,16 +38,32 @@ func New(p llm.Provider) *Coach { return &Coach{llm: p} }
 
 // Request describes one coaching turn.
 type Request struct {
-	Tier    domain.Tier
-	Problem domain.Problem
-	Code    string
-	Lang    string
-	History []domain.Conversation
+	Tier        domain.Tier
+	Problem     domain.Problem
+	Code        string
+	Lang        string
+	TestContext string
+	History     []domain.Conversation
 }
 
 // Stream sends the assembled prompt and returns a channel of reply chunks.
 func (c *Coach) Stream(ctx context.Context, req Request) (<-chan llm.Chunk, error) {
-	return c.llm.Chat(ctx, c.buildMessages(req), llm.Options{Temperature: 0.3})
+	return c.llm.Chat(ctx, c.buildMessages(req), optionsForTier(req.Tier))
+}
+
+func optionsForTier(tier domain.Tier) llm.Options {
+	opts := llm.Options{Temperature: 0.3}
+	switch tier {
+	case domain.TierHint:
+		opts.MaxTokens = 80
+	case domain.TierNudge:
+		opts.MaxTokens = 180
+	case domain.TierReview:
+		opts.MaxTokens = 420
+	case domain.TierAnswer:
+		opts.MaxTokens = 900
+	}
+	return opts
 }
 
 // buildMessages assembles the system + context + history into chat messages.
@@ -60,6 +76,11 @@ func (c *Coach) buildMessages(req Request) []llm.Message {
 	b.WriteString("【题面】\n")
 	b.WriteString(strings.TrimSpace(req.Problem.Content))
 	b.WriteString("\n")
+	if strings.TrimSpace(req.TestContext) != "" {
+		b.WriteString("\n【最近测试结果】\n")
+		b.WriteString(strings.TrimSpace(req.TestContext))
+		b.WriteString("\n")
+	}
 	if strings.TrimSpace(req.Code) != "" {
 		lang := req.Lang
 		if lang == "" {

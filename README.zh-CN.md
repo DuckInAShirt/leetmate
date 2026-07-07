@@ -66,6 +66,12 @@ LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「
 brew install DuckInAShirt/tap/leetmate
 ```
 
+**npm**（会安装对应平台的 GitHub Release 二进制）：
+
+```bash
+npm install -g @duckinashirt/leetmate
+```
+
 **go install**（需已安装 Go）：
 
 ```bash

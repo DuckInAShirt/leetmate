@@ -49,7 +49,9 @@ type practiceModel struct {
 	coachText     string
 	coachTier     domain.Tier
 	coaching      bool
+	coachPending  string
 	coachErr      string
+	testContext   string
 	answerConfirm bool
 	planCtx       *planCtx // non-nil when launched from a study plan
 
@@ -317,23 +319,30 @@ func (m *practiceModel) applySubmit(msg submitResultMsg) {
 
 func (m *practiceModel) applyTest(msg testResultMsg) {
 	if msg.err != nil {
-		m.fullErr = msg.err.Error()
+		m.fullErr = strings.TrimSpace(msg.result.Raw)
+		if m.fullErr == "" {
+			m.fullErr = msg.err.Error()
+		}
+		m.testContext = "最近一次测试未通过：" + summarizeErr(m.fullErr)
 		m.status = m.d.t("practice.testError") + summarizeErr(m.fullErr)
 		return
 	}
 	if msg.result.Passed {
 		m.fullErr = ""
+		m.testContext = "最近一次测试集已通过；这不等于逻辑已被证明正确。"
 		m.status = m.d.t("practice.testPassed")
 		return
 	}
 	// Some case failed (but command succeeded): keep raw output for expand.
 	m.fullErr = strings.TrimSpace(msg.result.Raw)
+	m.testContext = "最近一次测试未通过：" + summarizeErr(m.fullErr)
 	m.status = m.d.t("practice.testFailed")
 }
 
 // --- coaching ---
 
 func (m *practiceModel) applyCoachChunk(text string) {
+	m.coachPending = ""
 	m.coachText += text
 	m.setCoachContent()
 	m.coachVP.GotoBottom()
@@ -343,8 +352,16 @@ func (m *practiceModel) applyCoachChunk(text string) {
 	}
 }
 
+func (m *practiceModel) applyCoachReasoning() {
+	if m.coachText == "" {
+		m.coachPending = m.d.t("coach.reasoning")
+		m.setCoachContent()
+	}
+}
+
 func (m *practiceModel) applyCoachDone() {
 	m.coaching = false
+	m.coachPending = ""
 	if m.coachTier == domain.TierAnswer {
 		m.gaveUp = true
 	}
@@ -354,6 +371,7 @@ func (m *practiceModel) applyCoachDone() {
 
 func (m *practiceModel) applyCoachErr(err error) {
 	m.coaching = false
+	m.coachPending = ""
 	m.coachErr = err.Error()
 	m.setCoachContent()
 }
@@ -477,6 +495,9 @@ func (m *practiceModel) coachDisplay() string {
 		}
 		return s
 	case m.coaching:
+		if m.coachPending != "" {
+			return subtleStyle.Render(m.coachPending)
+		}
 		return subtleStyle.Render(m.d.t("coach.thinking"))
 	default:
 		return subtleStyle.Render(m.d.t("coach.empty"))

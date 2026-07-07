@@ -165,7 +165,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case coachChunkMsg:
 		if m.practice != nil {
-			m.practice.applyCoachChunk(msg.text)
+			if msg.kind == llm.ChunkReasoning {
+				m.practice.applyCoachReasoning()
+			} else {
+				m.practice.applyCoachChunk(msg.text)
+			}
 		}
 		if m.coachStream != nil {
 			return m, listenCoach(m.coachStream)
@@ -397,18 +401,20 @@ func (m Model) startCoach(tier domain.Tier, gaveUp bool) (tea.Model, tea.Cmd) {
 	p.coaching = true
 	p.coachTier = tier
 	p.coachText = ""
+	p.coachPending = p.d.t("coach.waiting")
 	p.coachErr = ""
-	p.coachVP.SetContent("")
+	p.setCoachContent()
 	if gaveUp {
 		p.gaveUp = true
 	}
 	hist, _ := m.deps.Store.RecentConversations(context.Background(), p.problem.Slug, m.deps.Config.LLM.MaxHistory)
 	req := coach.Request{
-		Tier:    tier,
-		Problem: p.problem,
-		Code:    p.code,
-		Lang:    m.deps.Leetgo.Lang(),
-		History: hist,
+		Tier:        tier,
+		Problem:     p.problem,
+		Code:        p.code,
+		Lang:        m.deps.Leetgo.Lang(),
+		TestContext: p.testContext,
+		History:     hist,
 	}
 	return m, coachStartCmd(m.deps, req)
 }
