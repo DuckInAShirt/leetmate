@@ -2,6 +2,9 @@
 /leetmate
 /bin/
 /dist/
+/npm/bin/leetmate
+/npm/bin/leetmate.exe
+/npm/*.tgz
 
 # SQLite databases
 *.db

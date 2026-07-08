@@ -1,0 +1,41 @@
+{
+  "name": "@duckinashirt/leetmate",
+  "version": "0.0.0-dev",
+  "description": "Hints, not handouts: a terminal LeetCode coach and spaced review tool.",
+  "license": "MIT",
+  "homepage": "https://github.com/DuckInAShirt/leetmate#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DuckInAShirt/leetmate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DuckInAShirt/leetmate/issues"
+  },
+  "bin": {
+    "leetmate": "bin/leetmate.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node --test scripts/*.test.js",
+    "test:install": "LEETMATE_SKIP_DOWNLOAD=1 node scripts/install.js && node bin/leetmate.js --version"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "leetcode",
+    "tui",
+    "cli",
+    "algorithms",
+    "spaced-repetition"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

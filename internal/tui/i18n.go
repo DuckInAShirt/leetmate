@@ -146,6 +146,14 @@ var messages = map[string]map[Lang]string{
 		LangZH: "思考中…",
 		LangEN: "Thinking…",
 	},
+	"coach.waiting": {
+		LangZH: "已连接，等待模型输出…",
+		LangEN: "Connected, waiting for model output…",
+	},
+	"coach.reasoning": {
+		LangZH: "模型正在推理，已隐藏推理内容…",
+		LangEN: "Model is reasoning; hidden reasoning content…",
+	},
 	"coach.confirm": {
 		LangZH: "确定要看完整答案吗？将标记为「放弃独立完成」。  [y] 确认 / [n] 取消",
 		LangEN: "See the full answer? This marks the problem as 'gave up'.  [y] yes / [n] no",

@@ -34,12 +34,21 @@ type Options struct {
 	Temperature float32
 }
 
+// ChunkKind identifies what a streamed chunk contains.
+type ChunkKind int
+
+const (
+	ChunkText ChunkKind = iota
+	ChunkReasoning
+)
+
 // Chunk is one piece of a streamed response. Text is the incremental text;
-// Err, when non-nil, signals a mid-stream failure (the channel is closed
-// immediately after). A clean end is signaled by the channel closing with no
-// Err chunk sent.
+// Kind separates final answer text from provider reasoning frames. Err, when
+// non-nil, signals a mid-stream failure (the channel is closed immediately
+// after). A clean end is signaled by the channel closing with no Err chunk sent.
 type Chunk struct {
 	Text string
+	Kind ChunkKind
 	Err  error
 }
 

@@ -35,7 +35,7 @@ type geminiGenCfg struct {
 	MaxOutputTokens int     `json:"maxOutputTokens,omitempty"`
 }
 type geminiReq struct {
-	SystemInstruction *geminiContent `json:"systemInstruction,omitempty"`
+	SystemInstruction *geminiContent  `json:"systemInstruction,omitempty"`
 	Contents          []geminiContent `json:"contents"`
 	GenerationConfig  *geminiGenCfg   `json:"generationConfig,omitempty"`
 }
@@ -85,10 +85,10 @@ func (g *geminiProvider) Chat(ctx context.Context, messages []Message, opts Opti
 }
 
 // parseGeminiChunk extracts incremental text from one SSE data payload.
-func parseGeminiChunk(payload []byte) (string, error) {
+func parseGeminiChunk(payload []byte) (Chunk, error) {
 	var gc geminiChunk
 	if err := json.Unmarshal(payload, &gc); err != nil {
-		return "", err
+		return Chunk{}, err
 	}
 	var sb strings.Builder
 	for _, c := range gc.Candidates {
@@ -96,7 +96,7 @@ func parseGeminiChunk(payload []byte) (string, error) {
 			sb.WriteString(p.Text)
 		}
 	}
-	return sb.String(), nil
+	return Chunk{Text: sb.String()}, nil
 }
 
 func toGeminiContents(messages []Message) (sys *geminiContent, contents []geminiContent) {

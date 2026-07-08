@@ -66,6 +66,12 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 brew install DuckInAShirt/tap/leetmate
 ```
 
+**npm** (installs the matching GitHub Release binary):
+
+```bash
+npm install -g @duckinashirt/leetmate
+```
+
 **go install**:
 
 ```bash

@@ -13,10 +13,12 @@ import (
 type fakeProvider struct {
 	chunks []string
 	msgs   []llm.Message
+	opts   llm.Options
 }
 
-func (f *fakeProvider) Chat(_ context.Context, msgs []llm.Message, _ llm.Options) (<-chan llm.Chunk, error) {
+func (f *fakeProvider) Chat(_ context.Context, msgs []llm.Message, opts llm.Options) (<-chan llm.Chunk, error) {
 	f.msgs = msgs
+	f.opts = opts
 	ch := make(chan llm.Chunk, len(f.chunks))
 	for _, c := range f.chunks {
 		ch <- llm.Chunk{Text: c}
@@ -151,5 +153,74 @@ func TestReviewTierSkipsHistory(t *testing.T) {
 	}
 	if !strings.Contains(f.msgs[1].Content, "func twoSum") {
 		t.Fatalf("review should include current code: %s", f.msgs[1].Content)
+	}
+}
+
+func TestCoachUsesConciseTokenBudgets(t *testing.T) {
+	cases := []struct {
+		tier domain.Tier
+		want int
+	}{
+		{domain.TierHint, 80},
+		{domain.TierNudge, 180},
+		{domain.TierReview, 420},
+		{domain.TierAnswer, 900},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.tier), func(t *testing.T) {
+			f := &fakeProvider{}
+			c := New(f)
+			_, _ = c.Stream(context.Background(), Request{
+				Tier:    tc.tier,
+				Problem: domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s", Title: "Sample"}},
+			})
+			if f.opts.MaxTokens != tc.want {
+				t.Fatalf("MaxTokens = %d, want %d", f.opts.MaxTokens, tc.want)
+			}
+			if f.opts.Temperature != 0.3 {
+				t.Fatalf("Temperature = %v, want 0.3", f.opts.Temperature)
+			}
+		})
+	}
+}
+
+func TestReviewPromptAsksForConciseDiagnosis(t *testing.T) {
+	f := &fakeProvider{}
+	c := New(f)
+	_, _ = c.Stream(context.Background(), Request{
+		Tier:    domain.TierReview,
+		Problem: domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s", Title: "Sample"}},
+		Code:    "func trap(height []int) int { return 0 }",
+	})
+	if len(f.msgs) == 0 {
+		t.Fatal("expected messages")
+	}
+	sys := f.msgs[0].Content
+	for _, want := range []string{"默认短答", "输出最多 3 条", "不要长篇模拟样例"} {
+		if !strings.Contains(sys, want) {
+			t.Fatalf("system/review prompt missing %q:\n%s", want, sys)
+		}
+	}
+}
+
+func TestReviewPromptIncludesPassedTestContext(t *testing.T) {
+	f := &fakeProvider{}
+	c := New(f)
+	_, _ = c.Stream(context.Background(), Request{
+		Tier:        domain.TierReview,
+		Problem:     domain.Problem{ProblemMeta: domain.ProblemMeta{Slug: "s", Title: "Sample"}},
+		Code:        "func trap(height []int) int { return 6 }",
+		TestContext: "最近一次测试集已通过；这不等于逻辑已被证明正确。",
+	})
+	if len(f.msgs) < 2 {
+		t.Fatal("expected system and user messages")
+	}
+	for _, want := range []string{"最近测试结果", "当前测试集通过", "不代表逻辑已被证明正确", "最小反例"} {
+		if !strings.Contains(f.msgs[0].Content, want) {
+			t.Fatalf("review system prompt missing %q:\n%s", want, f.msgs[0].Content)
+		}
+	}
+	if !strings.Contains(f.msgs[1].Content, "【最近测试结果】") || !strings.Contains(f.msgs[1].Content, "最近一次测试集已通过") || !strings.Contains(f.msgs[1].Content, "不等于逻辑已被证明正确") {
+		t.Fatalf("user prompt missing test context:\n%s", f.msgs[1].Content)
 	}
 }

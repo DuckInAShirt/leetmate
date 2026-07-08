@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/DuckInAShirt/leetmate/internal/config"
 )
@@ -28,17 +29,12 @@ type oaiMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
-type oaiRequest struct {
-	Model       string      `json:"model"`
-	Messages    []oaiMessage `json:"messages"`
-	Stream      bool        `json:"stream"`
-	Temperature float32     `json:"temperature,omitempty"`
-	MaxTokens   int         `json:"max_tokens,omitempty"`
-}
 type oaiChunk struct {
 	Choices []struct {
 		Delta struct {
-			Content string `json:"content"`
+			Content          string `json:"content"`
+			ReasoningContent string `json:"reasoning_content"`
+			Reasoning        string `json:"reasoning"`
 		} `json:"delta"`
 	} `json:"choices"`
 }
@@ -48,13 +44,21 @@ func (p *openaiProvider) Chat(ctx context.Context, messages []Message, opts Opti
 	for _, m := range messages {
 		msgs = append(msgs, oaiMessage{Role: string(m.Role), Content: m.Content})
 	}
-	body, err := json.Marshal(oaiRequest{
-		Model:       p.cfg.Model,
-		Messages:    msgs,
-		Stream:      true,
-		Temperature: opts.Temperature,
-		MaxTokens:   opts.MaxTokens,
-	})
+	reqBody := map[string]any{
+		"model":    p.cfg.Model,
+		"messages": msgs,
+		"stream":   true,
+	}
+	if opts.Temperature != 0 {
+		reqBody["temperature"] = opts.Temperature
+	}
+	if opts.MaxTokens != 0 {
+		reqBody["max_tokens"] = opts.MaxTokens
+	}
+	if p.disableThinkingByDefault() {
+		reqBody["enable_thinking"] = false
+	}
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +81,29 @@ func (p *openaiProvider) Chat(ctx context.Context, messages []Message, opts Opti
 	return streamSSE(resp.Body, parseOpenAIChunk), nil
 }
 
-func parseOpenAIChunk(payload []byte) (string, error) {
+func (p *openaiProvider) disableThinkingByDefault() bool {
+	baseURL := strings.ToLower(p.cfg.BaseURL)
+	model := strings.ToLower(p.cfg.Model)
+	return strings.Contains(baseURL, "siliconflow") && strings.Contains(model, "qwen")
+}
+
+func parseOpenAIChunk(payload []byte) (Chunk, error) {
 	var oc oaiChunk
 	if err := json.Unmarshal(payload, &oc); err != nil {
-		return "", err
+		return Chunk{}, err
 	}
 	if len(oc.Choices) == 0 {
-		return "", nil
+		return Chunk{}, nil
 	}
-	return oc.Choices[0].Delta.Content, nil
+	delta := oc.Choices[0].Delta
+	if delta.Content != "" {
+		return Chunk{Text: delta.Content}, nil
+	}
+	if delta.ReasoningContent != "" {
+		return Chunk{Text: delta.ReasoningContent, Kind: ChunkReasoning}, nil
+	}
+	if delta.Reasoning != "" {
+		return Chunk{Text: delta.Reasoning, Kind: ChunkReasoning}, nil
+	}
+	return Chunk{}, nil
 }

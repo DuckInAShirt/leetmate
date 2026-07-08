@@ -151,18 +151,29 @@ func (c *Client) runFull(ctx context.Context, args ...string) (stdout, stderr []
 	return outBuf.Bytes(), errBuf.Bytes(), err
 }
 
-// Test runs `leetgo test <qid> -L` (local) and parses the outcome. The full
-// output is kept in TestResult.Raw so the UI can expand it for detail.
-func (c *Client) Test(ctx context.Context, qid string) (domain.TestResult, error) {
-	stdout, stderr, err := c.runFull(ctx, "test", qid, "-L")
-	combined := string(stdout)
-	if len(stderr) > 0 {
-		combined += "\n" + string(stderr)
+func combineOutput(stdout, stderr []byte) string {
+	out := strings.TrimRight(string(stdout), "\n")
+	err := strings.TrimRight(string(stderr), "\n")
+	switch {
+	case out == "":
+		return err
+	case err == "":
+		return out
+	default:
+		return out + "\n" + err
 	}
+}
+
+// Test runs `leetgo test <qid>` and parses the outcome. The full output is kept
+// in TestResult.Raw so the UI can expand remote judge details such as Input /
+// Output / Expected when a case fails.
+func (c *Client) Test(ctx context.Context, qid string) (domain.TestResult, error) {
+	stdout, stderr, err := c.runFull(ctx, "test", qid)
+	combined := combineOutput(stdout, stderr)
 	res := parseTestOutput(combined)
 	res.Raw = combined
 	if err != nil {
-		return res, fmt.Errorf("leetgo test %s: %w\n%s", qid, err, strings.TrimSpace(string(stderr)))
+		return res, fmt.Errorf("leetgo test %s: %w\n%s", qid, err, strings.TrimSpace(combined))
 	}
 	return res, nil
 }

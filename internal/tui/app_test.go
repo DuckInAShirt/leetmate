@@ -458,3 +458,27 @@ func TestExpandedCoachDetailWrapsLongLines(t *testing.T) {
 		t.Fatalf("expanded coach detail should wrap long lines, got %q", got)
 	}
 }
+
+func TestApplyTestErrorPrefersRawLeetgoOutput(t *testing.T) {
+	pm := newPracticeModel(Deps{Config: cfg("zh")}, domain.Problem{})
+	raw := `✘ Wrong Answer
+
+Passed cases:  ✘✔
+Input:         [0,1,0,2,1,0,1,3,2,1,2,1]
+Output:        -8
+Expected:      6`
+	pm.applyTest(testResultMsg{
+		result: domain.TestResult{Raw: raw},
+		err:    assertErr("leetgo test 42: exit status 1"),
+	})
+	if pm.fullErr != raw {
+		t.Fatalf("fullErr = %q, want raw output", pm.fullErr)
+	}
+	if !strings.Contains(pm.status, "Wrong Answer") {
+		t.Fatalf("status = %q, want Wrong Answer summary", pm.status)
+	}
+}
+
+type assertErr string
+
+func (e assertErr) Error() string { return string(e) }
