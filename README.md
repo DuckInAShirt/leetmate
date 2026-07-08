@@ -69,7 +69,7 @@ brew install DuckInAShirt/tap/leetmate
 **npm** (installs the matching GitHub Release binary):
 
 ```bash
-npm install -g @duckinashirt/leetmate
+npm install -g @zxr55555/leetmate
 ```
 
 **go install**:

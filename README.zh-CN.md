@@ -69,7 +69,7 @@ brew install DuckInAShirt/tap/leetmate
 **npm**（会安装对应平台的 GitHub Release 二进制）：
 
 ```bash
-npm install -g @duckinashirt/leetmate
+npm install -g @zxr55555/leetmate
 ```
 
 **go install**（需已安装 Go）：
