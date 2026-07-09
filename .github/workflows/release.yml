@@ -69,9 +69,9 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if npm view "@duckinashirt/leetmate@$version" version >/dev/null 2>&1; then
+          if npm view "@zxr55555/leetmate@$version" version >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "@duckinashirt/leetmate@$version already exists; skipping."
+            echo "@zxr55555/leetmate@$version already exists; skipping."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
