@@ -66,27 +66,40 @@ function sha256(file) {
   return hash.digest('hex');
 }
 
-function download(url, dest) {
+function download(url, dest, get = https.get, redirects = 0) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    const request = https.get(url, { headers: { 'User-Agent': 'leetmate-npm-installer' } }, (response) => {
+    if (redirects > 5) {
+      reject(new Error(`Too many redirects while downloading ${url}`));
+      return;
+    }
+
+    const request = get(url, { headers: { 'User-Agent': 'leetmate-npm-installer' } }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-        file.close(() => fs.rmSync(dest, { force: true }));
-        download(response.headers.location, dest).then(resolve, reject);
+        response.resume();
+        const nextURL = new URL(response.headers.location, url).toString();
+        download(nextURL, dest, get, redirects + 1).then(resolve, reject);
         return;
       }
       if (response.statusCode !== 200) {
-        file.close(() => fs.rmSync(dest, { force: true }));
+        response.resume();
+        fs.rmSync(dest, { force: true });
         reject(new Error(`Download failed: HTTP ${response.statusCode} ${url}`));
         return;
       }
-      response.pipe(file);
+
+      const file = fs.createWriteStream(dest);
+      const cleanup = (err) => {
+        file.close(() => {
+          fs.rmSync(dest, { force: true });
+          reject(err);
+        });
+      };
+      response.on('error', cleanup);
+      file.on('error', cleanup);
       file.on('finish', () => file.close(resolve));
+      response.pipe(file);
     });
-    request.on('error', (err) => {
-      file.close(() => fs.rmSync(dest, { force: true }));
-      reject(err);
-    });
+    request.on('error', reject);
   });
 }
 
@@ -152,4 +165,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { assetName, binaryPath, parseChecksums, platformTarget, releaseURL, releaseVersion };
+module.exports = { assetName, binaryPath, download, parseChecksums, platformTarget, releaseURL, releaseVersion };

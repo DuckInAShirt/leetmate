@@ -1,11 +1,16 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { EventEmitter } = require('node:events');
+const fs = require('node:fs');
+const os = require('node:os');
 const test = require('node:test');
 const path = require('node:path');
+const { Readable } = require('node:stream');
 const {
   assetName,
   binaryPath,
+  download,
   parseChecksums,
   platformTarget,
   releaseURL,
@@ -44,4 +49,40 @@ test('releaseVersion prefers LEETMATE_VERSION', () => {
 test('binaryPath points inside npm bin directory', () => {
   assert.equal(path.basename(binaryPath(platformTarget('win32', 'x64'))), 'leetmate.exe');
   assert.equal(path.basename(binaryPath(platformTarget('linux', 'x64'))), 'leetmate');
+});
+
+test('download follows redirects before writing destination', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'leetmate-download-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const dest = path.join(dir, 'file.txt');
+  const seen = [];
+  const get = (url, _options, callback) => {
+    seen.push(url);
+    const request = new EventEmitter();
+    process.nextTick(() => {
+      if (url === 'https://example.test/start') {
+        const response = new EventEmitter();
+        response.statusCode = 302;
+        response.headers = { location: '/final' };
+        response.resume = () => {};
+        callback(response);
+        return;
+      }
+      if (url === 'https://example.test/final') {
+        const response = Readable.from(['ok']);
+        response.statusCode = 200;
+        response.headers = {};
+        callback(response);
+        return;
+      }
+      request.emit('error', new Error(`unexpected url: ${url}`));
+    });
+    return request;
+  };
+
+  await download('https://example.test/start', dest, get);
+
+  assert.deepEqual(seen, ['https://example.test/start', 'https://example.test/final']);
+  assert.equal(fs.readFileSync(dest, 'utf8'), 'ok');
 });
