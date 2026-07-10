@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/DuckInAShirt/leetmate/internal/config"
 )
 
 func TestRunInitWritesConfigAndEnv(t *testing.T) {
@@ -36,6 +38,64 @@ func TestRunInitWritesConfigAndEnv(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "next:") {
 		t.Errorf("output missing next steps:\n%s", out.String())
+	}
+}
+
+func TestRunInitDiscoversWorkspaceFromParent(t *testing.T) {
+	configDir := t.TempDir()
+	workspace := t.TempDir()
+	nested := filepath.Join(workspace, "go", "two-sum")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "leetgo.yaml"), []byte("code:\n  lang: go\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LEETMATE_CONFIG_DIR", configDir)
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(nested); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(oldWD) })
+
+	var out bytes.Buffer
+	if err := runInit([]string{"--preset", "gemini", "--lang", "en"}, &out); err != nil {
+		t.Fatalf("runInit: %v", err)
+	}
+	cfg, err := os.ReadFile(filepath.Join(configDir, "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	realWorkspace, err := filepath.EvalSymlinks(workspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(cfg), "workspace: "+realWorkspace) {
+		t.Fatalf("workspace not discovered:\n%s", cfg)
+	}
+	if !strings.Contains(out.String(), "run leetmate doctor") {
+		t.Fatalf("doctor next step missing:\n%s", out.String())
+	}
+}
+
+func TestRunInitQuotesWorkspaceWithYAMLSpecialCharacters(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("LEETMATE_CONFIG_DIR", dir)
+	workspace := "/tmp/leet # practice: set"
+
+	var out bytes.Buffer
+	if err := runInit([]string{"--workspace", workspace, "--lang", "en"}, &out); err != nil {
+		t.Fatalf("runInit: %v", err)
+	}
+	cfg, _, err := config.Load()
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	if cfg.Leetgo.Workspace != workspace {
+		t.Fatalf("workspace = %q, want %q", cfg.Leetgo.Workspace, workspace)
 	}
 }
 

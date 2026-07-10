@@ -1,5 +1,7 @@
 package tui
 
+import "fmt"
+
 // Lightweight i18n. All user-facing strings live in `messages` and are looked
 // up by key + language. Add a language by adding a column; add a string by
 // adding a key. Missing translations fall back to English.
@@ -23,7 +25,14 @@ func loadDict(language string) dict {
 	}
 }
 
-// t returns the translated string for key, falling back to English then the key.
+// Text returns one translated user-facing string for CLI and TUI callers.
+func Text(language, key string) string { return loadDict(language).t(key) }
+
+// Textf formats one translated string with the provided arguments.
+func Textf(language, key string, args ...any) string {
+	return fmt.Sprintf(Text(language, key), args...)
+}
+
 func (d dict) t(key string) string {
 	if m, ok := messages[key]; ok {
 		if s, ok := m[d.lang]; ok && s != "" {
@@ -81,6 +90,10 @@ var messages = map[string]map[Lang]string{
 	"home.status.ready": {
 		LangZH: "ready · leetgo + LLM preset",
 		LangEN: "ready · leetgo + LLM preset",
+	},
+	"home.status.leetgoOnly": {
+		LangZH: "ready · 仅 leetgo 模式 · Coach 未启用",
+		LangEN: "ready · leetgo-only mode · Coach disabled",
 	},
 	"home.status.busy": {
 		LangZH: "working · 准备题目中",
@@ -150,6 +163,10 @@ var messages = map[string]map[Lang]string{
 		LangZH: "已连接，等待模型输出…",
 		LangEN: "Connected, waiting for model output…",
 	},
+	"coach.unavailable": {
+		LangZH: "LLM 未配置：请运行 leetmate config 查看当前 preset，并在配置目录的 .env 中设置对应 API key",
+		LangEN: "LLM is not configured: run leetmate config to check the preset, then set its API key in the config directory's .env file",
+	},
 	"coach.reasoning": {
 		LangZH: "模型正在推理，已隐藏推理内容…",
 		LangEN: "Model is reasoning; hidden reasoning content…",
@@ -166,6 +183,56 @@ var messages = map[string]map[Lang]string{
 		LangZH: "（已查看答案，本次计为放弃独立完成）",
 		LangEN: "(answer revealed — counted as gave up)",
 	},
+
+	"doctor.title":                      {LangZH: "LeetMate 环境检查", LangEN: "LeetMate environment check"},
+	"doctor.next.fix":                   {LangZH: "\n下一步：修复第一个失败项，然后重新运行 `leetmate doctor`。", LangEN: "\nNext: fix the first failed check, then run `leetmate doctor` again."},
+	"doctor.ready":                      {LangZH: "\n必需环境已就绪。认证状态仅做本地检查，首次 test/submit 时仍会由 leetgo 验证。", LangEN: "\nRequired setup is ready. Authentication was checked locally; leetgo verifies it on the first test or submit."},
+	"doctor.label.config":               {LangZH: "配置", LangEN: "config"},
+	"doctor.label.leetgo":               {LangZH: "leetgo", LangEN: "leetgo"},
+	"doctor.label.workspace":            {LangZH: "工作区", LangEN: "workspace"},
+	"doctor.label.auth":                 {LangZH: "认证", LangEN: "auth"},
+	"doctor.label.llm":                  {LangZH: "LLM", LangEN: "LLM"},
+	"doctor.label.config_dir":           {LangZH: "配置目录", LangEN: "config dir"},
+	"doctor.label.data":                 {LangZH: "数据目录", LangEN: "data"},
+	"doctor.config.found":               {LangZH: "已读取 %s", LangEN: "loaded %s"},
+	"doctor.config.missing":             {LangZH: "缺少配置；运行 `leetmate init`", LangEN: "missing; run `leetmate init`"},
+	"doctor.config.unreadable":          {LangZH: "配置不可读：%s", LangEN: "unreadable: %s"},
+	"doctor.leetgo.found":               {LangZH: "已找到 %s", LangEN: "found %s"},
+	"doctor.leetgo.missing":             {LangZH: "未找到；运行 `brew install j178/tap/leetgo` 或 `go install github.com/j178/leetgo@latest`", LangEN: "not found; run `brew install j178/tap/leetgo` or `go install github.com/j178/leetgo@latest`"},
+	"doctor.workspace.ready":            {LangZH: "已找到 %s", LangEN: "found %s"},
+	"doctor.workspace.missing":          {LangZH: "未找到 leetgo.yaml；先运行 `leetgo init`，再执行 `leetmate config set leetgo.workspace /path/to/workspace`", LangEN: "no leetgo.yaml found; run `leetgo init`, then `leetmate config set leetgo.workspace /path/to/workspace`"},
+	"doctor.workspace.not_directory":    {LangZH: "配置的路径不是目录：%s", LangEN: "configured path is not a directory: %s"},
+	"doctor.workspace.no_config":        {LangZH: "目录中缺少 leetgo.yaml：%s", LangEN: "leetgo.yaml is missing from %s"},
+	"doctor.workspace.invalid_config":   {LangZH: "leetgo.yaml 无效：%s", LangEN: "invalid leetgo.yaml: %s"},
+	"doctor.workspace.missing_language": {LangZH: "leetgo.yaml 缺少 code.lang；运行 `leetmate config set code.lang go` 或使用其他语言", LangEN: "leetgo.yaml is missing code.lang; run `leetmate config set code.lang go` or choose another language"},
+	"doctor.auth.cookies_ready":         {LangZH: "cookies 已在环境或 workspace .env 中配置（未联网验证）", LangEN: "cookies are configured in the environment or workspace .env (not verified online)"},
+	"doctor.auth.cookies_missing":       {LangZH: "cookies 未完整配置；在工作区 .env 设置 LEETCODE_SESSION 和 LEETCODE_CSRFTOKEN", LangEN: "cookies are incomplete; set LEETCODE_SESSION and LEETCODE_CSRFTOKEN in the workspace .env"},
+	"doctor.auth.runtime_unverified":    {LangZH: "使用 %s，只能在运行时由 leetgo 验证", LangEN: "using %s; only leetgo can verify it at runtime"},
+	"doctor.auth.missing":               {LangZH: "未声明认证方式；test/submit 可能不可用", LangEN: "no authentication method declared; test/submit may be unavailable"},
+	"doctor.llm.found":                  {LangZH: "已检测到 %s", LangEN: "detected %s"},
+	"doctor.llm.missing":                {LangZH: "未设置 %s；可继续刷题，但 Coach 不可用", LangEN: "%s is unset; practice still works, but Coach is unavailable"},
+	"doctor.llm.invalid_provider":       {LangZH: "未知 provider：%s；运行 `leetmate config --presets` 查看可用配置", LangEN: "unknown provider: %s; run `leetmate config --presets` to list supported presets"},
+	"doctor.path.writable":              {LangZH: "可写 %s", LangEN: "writable %s"},
+	"doctor.path.unwritable":            {LangZH: "不可写 %s：%s", LangEN: "not writable %s: %s"},
+	"onboarding.not_configured":         {LangZH: "LeetMate 尚未配置。", LangEN: "LeetMate is not configured."},
+	"onboarding.run_init":               {LangZH: "运行：leetmate init --workspace %q", LangEN: "Run: leetmate init --workspace %q"},
+	"onboarding.run_leetgo_init":        {LangZH: "进入工作区运行 `leetgo init`，然后运行 `leetmate init`。", LangEN: "Run `leetgo init` in a workspace, then run `leetmate init`."},
+	"onboarding.title":                  {LangZH: "LeetMate 首次设置", LangEN: "LeetMate first-time setup"},
+	"onboarding.language":               {LangZH: "界面语言 [zh/en] (zh)：", LangEN: "UI language [zh/en] (en): "},
+	"onboarding.found_workspace":        {LangZH: "已发现 leetgo workspace：%s", LangEN: "Found leetgo workspace: %s"},
+	"onboarding.invalid_choice":         {LangZH: "选项无效", LangEN: "Invalid choice"},
+	"onboarding.workspace":              {LangZH: "leetgo workspace（%s）：", LangEN: "leetgo workspace (%s): "},
+	"onboarding.invalid_path":           {LangZH: "路径无效", LangEN: "Invalid path"},
+	"onboarding.no_workspace":           {LangZH: "未找到 leetgo.yaml，请先在该目录运行 `leetgo init`。", LangEN: "No leetgo.yaml found. Run `leetgo init` there first."},
+	"onboarding.environment_check":      {LangZH: "\n环境检查", LangEN: "\nEnvironment check"},
+	"onboarding.continue":               {LangZH: "\n按回车进入 LeetMate；LLM key 可稍后配置。", LangEN: "\nPress Enter to continue; the LLM key is optional for now."},
+	"init.wrote":                        {LangZH: "✓ 已写入 %s", LangEN: "✓ wrote %s"},
+	"init.next":                         {LangZH: "下一步：", LangEN: "next:"},
+	"init.set_workspace":                {LangZH: "  1. 设置 workspace：leetmate config set leetgo.workspace /path/to/workspace", LangEN: "  1. set the workspace: leetmate config set leetgo.workspace /path/to/workspace"},
+	"init.run_doctor.first":             {LangZH: "  1. 运行 leetmate doctor", LangEN: "  1. run leetmate doctor"},
+	"init.run_doctor.second":            {LangZH: "  2. 运行 leetmate doctor", LangEN: "  2. run leetmate doctor"},
+	"init.run_app":                      {LangZH: "  2. 运行 leetmate", LangEN: "  2. run leetmate"},
+	"init.optional_key":                 {LangZH: "可选：编辑 %s 以启用 Coach", LangEN: "optional: edit %s to enable Coach"},
 
 	"difficulty.easy":   {LangZH: "简单", LangEN: "Easy"},
 	"difficulty.medium": {LangZH: "中等", LangEN: "Medium"},

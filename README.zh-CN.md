@@ -50,13 +50,15 @@ LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「
 | 题单 + 进度 | ✅ |
 | preset 多模型 | ✅ |
 | FSRS-style 间隔复习 MVP | ✅ |
+| 首跑引导 + `leetmate doctor` | ✅ |
 | `leetmate init` 配置生成 | ✅ |
 
 ## 前置依赖
 
-- Go 1.26+
-- [leetgo](https://github.com/j178/leetgo)：`brew install leetgo` 或 `go install github.com/j178/leetgo@latest`，并 `leetgo init` 配好 LeetCode 认证
-- 一个 LLM API key（Gemini / 硅基流动 / Groq / DeepSeek 任一，均有免费额度）
+- [leetgo](https://github.com/j178/leetgo)：`brew install j178/tap/leetgo` 或 `go install github.com/j178/leetgo@latest`，然后运行 `leetgo init`
+- 用于 test/submit 的 LeetCode cookies（按下文配置到 leetgo workspace）
+- 可选的 LLM API key，用于 Coach：Gemini / 硅基流动 / Groq / DeepSeek
+- 只有从源码构建或通过 `go install` 安装 leetgo 时才需要 Go 1.26+
 
 ## 安装
 
@@ -88,21 +90,52 @@ cd leetmate
 go build -o leetmate ./cmd/leetmate
 ```
 
-## 配置
+## 首次运行
 
-推荐先生成配置模板：
+安装后直接运行 `leetmate`。在交互终端中，首跑引导会从当前目录向上发现 `leetgo.yaml`，生成 LeetMate 配置，执行本地环境检查，然后启动 TUI。已有配置的用户不会多一步提示。
+
+非交互环境或需要显式配置时：
 
 ```bash
-leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace
+leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace --lang zh
+leetmate doctor
+leetmate
 ```
 
-然后把对应平台的 key 填进 `~/.config/leetmate/.env`：
+`leetmate doctor` 会检查配置、leetgo binary、workspace、本地认证配置、LLM key 和数据目录写权限。它不会发送凭据，也不会请求 LeetCode。脚本可使用 `leetmate doctor --json`。
+
+### LeetCode 认证
+
+在 workspace 的 `leetgo.yaml` 中配置：
+
+```yaml
+leetcode:
+  site: https://leetcode.cn # 或 https://leetcode.com
+  credentials:
+    from: cookies
+```
+
+在同目录的 `.env` 中配置：
 
 ```dotenv
-SILICONFLOW_API_KEY=sk-...   # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
+LEETCODE_SESSION=<LEETCODE_SESSION cookie>
+LEETCODE_CSRFTOKEN=<csrftoken cookie>
+# LEETCODE_CFCLEARANCE=<cf_clearance cookie> # leetcode.com 某些环境还需要
+```
+
+`doctor` 只确认必需 cookie 已填写。会话是否仍有效，会在首次 test/submit 时由 leetgo 验证。
+
+### 可选 Coach
+
+没有 LLM key 时 LeetMate 会进入“仅 leetgo 模式”：选题、编辑、测试、提交和间隔复习仍可使用，AI 辅导不可用。要启用 Coach，把 preset 对应的 key 填进 LeetMate 配置目录的 `.env`（通常是 `~/.config/leetmate/.env`）：
+
+```dotenv
+SILICONFLOW_API_KEY=... # 或 GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
 
 还没有硅基流动 key 的话，可以用邀请码 [`hoNe8cdD`](https://cloud.siliconflow.cn/i/hoNe8cdD) 注册，体验推荐的国内友好 preset。
+
+## 配置
 
 查看或更新当前配置：
 
@@ -171,7 +204,7 @@ items: ["5", "53", "200"]   # leetcode 题号
 
 ## 发布
 
-代码推送到 `main` 后会自动创建下一个 patch tag（`vX.Y.Z`）并运行 GoReleaser，发布 GitHub Release 产物并更新 Homebrew tap。手动推送 `v*` tag 仍会触发常规 release workflow。
+代码推送到 `main` 后会运行 GoReleaser，发布 GitHub Release、npm 和 Homebrew tap。`VERSION` 可指定下一个 minor 或 major 版本（当前分支设置为 `0.3.0`）；最新 tag 达到该版本后，后续 push 恢复自动递增 patch。同一 commit 的 workflow 重跑会复用已有 release tag。手动推送 `v*` tag 仍会触发常规 release workflow。
 
 ## 技术栈
 

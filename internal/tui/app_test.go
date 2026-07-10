@@ -39,6 +39,36 @@ func apply(t *testing.T, m Model, msg tea.Msg) Model {
 	return mm
 }
 
+func TestHomeStatusShowsLeetgoOnlyModeWithoutCoach(t *testing.T) {
+	for _, tc := range []struct {
+		lang string
+		want string
+	}{
+		{lang: "zh", want: "仅 leetgo 模式"},
+		{lang: "en", want: "leetgo-only mode"},
+	} {
+		t.Run(tc.lang, func(t *testing.T) {
+			m := New(Deps{Config: cfg(tc.lang)})
+			got := m.renderHomeStatus(100)
+			if !strings.Contains(got, tc.want) {
+				t.Fatalf("status missing %q: %s", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestCoachUnavailableUsesSelectedLanguage(t *testing.T) {
+	m := New(Deps{Config: cfg("en")})
+	m.practice = &practiceModel{d: loadDict("en")}
+	m.view = viewPractice
+
+	updated, _ := m.startCoach(domain.TierHint, false)
+	got := updated.(Model).practice.coachErr
+	if !strings.Contains(got, "LLM is not configured") {
+		t.Fatalf("unexpected coach error: %q", got)
+	}
+}
+
 func TestMenuRenderZH(t *testing.T) {
 	m := New(Deps{Config: cfg("zh")})
 	v := m.View()
