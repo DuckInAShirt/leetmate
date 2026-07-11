@@ -90,7 +90,7 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
 `tui/i18n.go` 的轻量字典：所有面向用户的字符串按 key + language 查表，缺翻译回退英文。加语言加列、加字符串加 key。
 
 ### README / demo / release
-`README.md` 是英文主 README，`README.zh-CN.md` 是中文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试并运行 GoReleaser；根目录 `VERSION` 可指定下一个 minor/major 版本，最新 tag 达到该值后恢复自动 patch，workflow 重跑复用当前 SHA 已有 tag。`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
+`README.md` 是中文主 README，`README.en.md` 是英文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试并运行 GoReleaser；根目录 `VERSION` 可指定下一个 minor/major 版本，最新 tag 达到该值后恢复自动 patch，workflow 重跑复用当前 SHA 已有 tag。`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
 
 ## 约定
 
@@ -98,5 +98,5 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
 - 新的异步副作用：在 `cmds.go` 里定义 Cmd + 对应 `*Msg`，在 `app.go`/`practice.go` 的 `Update` 里处理结果，保持 bubbletea 的单向数据流。
 - 涉及 LLM 提示词的改动，从产品语义上确认是否触及「防代答」护栏——前三级（Hint/Nudge/Review）禁止输出完整可提交代码。
 - 配置目录解析见 `config.ConfigDir()`：`$LEETMATE_CONFIG_DIR` > `$XDG_CONFIG_HOME/leetmate` > `~/.config/leetmate`。
-- 改 `leetmate init/config` 输出或模板时，同步更新 `cmd/leetmate/config_cmd_test.go`、README 和 `README.zh-CN.md`。
+- 改 `leetmate init/config` 输出或模板时，同步更新 `cmd/leetmate/config_cmd_test.go`、`README.md` 和 `README.en.md`。
 - 改 README 首屏或 TUI 首页视觉时，必要时重录 `docs/demo.gif`，并保留 `docs/demo.tape` 可复现。
