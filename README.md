@@ -50,13 +50,15 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 | Study plans + progress | ✅ |
 | Model presets | ✅ |
 | FSRS-style spaced review MVP | ✅ |
+| First-run guide + `leetmate doctor` | ✅ |
 | `leetmate init` config generator | ✅ |
 
 ## Requirements
 
-- Go 1.26+
-- [leetgo](https://github.com/j178/leetgo): `brew install leetgo` or `go install github.com/j178/leetgo@latest`, then run `leetgo init` and configure LeetCode authentication
-- One LLM API key: Gemini, SiliconFlow, Groq, or DeepSeek all have free or low-cost options
+- [leetgo](https://github.com/j178/leetgo): `brew install j178/tap/leetgo` or `go install github.com/j178/leetgo@latest`, then run `leetgo init`
+- LeetCode cookies for test/submit (configured in the leetgo workspace as shown below)
+- Optional LLM API key for Coach: Gemini, SiliconFlow, Groq, or DeepSeek
+- Go 1.26+ only when building from source or installing leetgo with `go install`
 
 ## Installation
 
@@ -88,21 +90,52 @@ cd leetmate
 go build -o leetmate ./cmd/leetmate
 ```
 
-## Configuration
+## First Run
 
-Generate a starter config first:
+Run `leetmate` after installation. On an interactive terminal, the first-run guide discovers a `leetgo.yaml` in the current directory or its parents, writes the LeetMate config, runs a local environment check, and starts the TUI. Existing users start normally without an extra prompt.
+
+For a non-interactive setup, or to configure explicitly:
 
 ```bash
-leetmate init --preset siliconflow --workspace /path/to/your/leetgo/workspace
+leetmate init --preset gemini --workspace /path/to/your/leetgo/workspace --lang en
+leetmate doctor
+leetmate
 ```
 
-Then put the corresponding API key in `~/.config/leetmate/.env`:
+`leetmate doctor` checks the config, leetgo binary, workspace, local authentication setup, LLM key, and writable data paths. It does not send credentials or make a LeetCode request. Use `leetmate doctor --json` for machine-readable output.
+
+### LeetCode authentication
+
+In the workspace's `leetgo.yaml`:
+
+```yaml
+leetcode:
+  site: https://leetcode.com # or https://leetcode.cn
+  credentials:
+    from: cookies
+```
+
+In `.env` next to that `leetgo.yaml`:
 
 ```dotenv
-SILICONFLOW_API_KEY=sk-...   # or GEMINI_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
+LEETCODE_SESSION=<LEETCODE_SESSION cookie>
+LEETCODE_CSRFTOKEN=<csrftoken cookie>
+# LEETCODE_CFCLEARANCE=<cf_clearance cookie> # sometimes required by leetcode.com
+```
+
+`doctor` only confirms that the required cookie values are present. leetgo validates whether the session is still accepted when you first test or submit.
+
+### Optional Coach
+
+LeetMate works in leetgo-only mode without an LLM key: pick, edit, test, submit, and spaced review remain available, while AI coaching is disabled. To enable Coach, put the selected preset's key in the LeetMate config directory's `.env` (normally `~/.config/leetmate/.env`):
+
+```dotenv
+GEMINI_API_KEY=... # or SILICONFLOW_API_KEY / GROQ_API_KEY / DEEPSEEK_API_KEY
 ```
 
 Need a SiliconFlow key? You can register with invite code [`hoNe8cdD`](https://cloud.siliconflow.cn/i/hoNe8cdD) to try the recommended China-friendly preset.
+
+## Configuration
 
 Inspect or update the resolved config:
 
@@ -171,7 +204,7 @@ items: ["5", "53", "200"]   # LeetCode problem IDs
 
 ## Release
 
-Pushes to `main` automatically create the next patch tag (`vX.Y.Z`) and run GoReleaser, publishing GitHub Release assets and updating the Homebrew tap. Manual `v*` tag pushes still trigger the regular release workflow.
+Pushes to `main` run GoReleaser and publish GitHub Release assets, npm, and the Homebrew tap. `VERSION` can request the next minor or major release (this branch sets `0.3.0`); once the latest tag reaches that value, later pushes resume automatic patch bumps. Reruns reuse a release tag already pointing at the same commit. Manual `v*` tag pushes still trigger the regular release workflow.
 
 ## Tech Stack
 

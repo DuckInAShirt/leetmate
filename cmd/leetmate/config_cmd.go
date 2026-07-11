@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/DuckInAShirt/leetmate/internal/config"
+	"github.com/DuckInAShirt/leetmate/internal/doctor"
+	"github.com/DuckInAShirt/leetmate/internal/tui"
 	"gopkg.in/yaml.v3"
 )
 
@@ -33,6 +35,13 @@ func runInit(args []string, out io.Writer) error {
 	if *lang != "zh" && *lang != "en" {
 		return fmt.Errorf("invalid lang %q (choose: zh or en)", *lang)
 	}
+	if *workspace == "" {
+		if cwd, cwdErr := os.Getwd(); cwdErr == nil {
+			if found, findErr := doctor.FindWorkspace(cwd); findErr == nil {
+				*workspace = found
+			}
+		}
+	}
 
 	dir, err := config.ConfigDir()
 	if err != nil {
@@ -49,22 +58,21 @@ func runInit(args []string, out io.Writer) error {
 	if err := ensureWritable(envPath, *force); err != nil {
 		return err
 	}
-	if err := os.WriteFile(configPath, []byte(configTemplate(*lang, *workspace, *preset)), 0o600); err != nil {
-		return err
-	}
-	if err := os.WriteFile(envPath, []byte(envTemplate(*preset)), 0o600); err != nil {
+	if err := writeInitFiles(configPath, []byte(configTemplate(*lang, *workspace, *preset)), envPath, []byte(envTemplate(*preset)), *force); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(out, "✓ wrote %s\n", configPath)
-	fmt.Fprintf(out, "✓ wrote %s\n", envPath)
-	fmt.Fprintln(out, "next:")
-	fmt.Fprintf(out, "  1. edit %s and fill your API key\n", filepath.Join(dir, ".env"))
+	fmt.Fprintln(out, tui.Textf(*lang, "init.wrote", configPath))
+	fmt.Fprintln(out, tui.Textf(*lang, "init.wrote", envPath))
+	fmt.Fprintln(out, tui.Text(*lang, "init.next"))
 	if *workspace == "" {
-		fmt.Fprintf(out, "  2. set leetgo.workspace in %s\n", filepath.Join(dir, "config.yaml"))
+		fmt.Fprintln(out, tui.Text(*lang, "init.set_workspace"))
+		fmt.Fprintln(out, tui.Text(*lang, "init.run_doctor.second"))
 	} else {
-		fmt.Fprintln(out, "  2. run leetmate")
+		fmt.Fprintln(out, tui.Text(*lang, "init.run_doctor.first"))
+		fmt.Fprintln(out, tui.Text(*lang, "init.run_app"))
 	}
+	fmt.Fprintln(out, tui.Textf(*lang, "init.optional_key", filepath.Join(dir, ".env")))
 	return nil
 }
 
@@ -258,6 +266,23 @@ func configSetKeys() string {
 	}, ", ")
 }
 
+func writeInitFiles(configPath string, configData []byte, envPath string, envData []byte, force bool) error {
+	oldEnv, envReadErr := os.ReadFile(envPath)
+	envExisted := envReadErr == nil
+	if err := os.WriteFile(envPath, envData, 0o600); err != nil {
+		return err
+	}
+	if err := os.WriteFile(configPath, configData, 0o600); err != nil {
+		if force && envExisted {
+			_ = os.WriteFile(envPath, oldEnv, 0o600)
+		} else if !envExisted {
+			_ = os.Remove(envPath)
+		}
+		return err
+	}
+	return nil
+}
+
 func ensureWritable(path string, force bool) error {
 	if _, err := os.Stat(path); err == nil && !force {
 		return fmt.Errorf("%s already exists (use --force to overwrite)", path)
@@ -268,12 +293,17 @@ func ensureWritable(path string, force bool) error {
 }
 
 func configTemplate(lang, workspace, preset string) string {
+	workspaceYAML, err := yaml.Marshal(workspace)
+	if err != nil {
+		workspaceYAML = []byte(`""`)
+	}
+	workspaceValue := strings.TrimSpace(string(workspaceYAML))
 	return strings.Join([]string{
 		fmt.Sprintf("language: %s", lang),
 		"",
 		"leetgo:",
 		"  # Directory containing leetgo.yaml. Run \"leetgo init\" first if you do not have one.",
-		fmt.Sprintf("  workspace: %s", workspace),
+		fmt.Sprintf("  workspace: %s", workspaceValue),
 		"  binary: leetgo",
 		"",
 		"llm:",

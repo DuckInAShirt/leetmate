@@ -1,4 +1,5 @@
-# Automatically publish a patch release after main receives new code.
+# Publish after main receives new code. VERSION can request the next minor/major;
+# once the latest tag reaches it, subsequent pushes resume patch bumps.
 name: auto-release
 
 on:
@@ -35,27 +36,48 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Create next patch tag
+      - name: Create or reuse release tag
         id: version
         run: |
-          latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
-          if [[ -z "$latest" ]]; then
-            next="v0.1.0"
+          existing="$(git tag --points-at HEAD -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+          if [[ -n "$existing" ]]; then
+            next="$existing"
           else
-            version="${latest#v}"
-            IFS=. read -r major minor patch <<< "$version"
-            next="v${major}.${minor}.$((patch + 1))"
-          fi
+            latest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+            requested="v$(tr -d '[:space:]' < VERSION)"
+            if [[ ! "$requested" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Invalid VERSION: $requested" >&2
+              exit 1
+            fi
+            if [[ -z "$latest" ]]; then
+              next="$requested"
+            elif [[ "$(printf '%s\n%s\n' "$latest" "$requested" | sort -V | tail -n1)" == "$requested" && "$requested" != "$latest" ]]; then
+              next="$requested"
+            else
+              version="${latest#v}"
+              IFS=. read -r major minor patch <<< "$version"
+              next="v${major}.${minor}.$((patch + 1))"
+            fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$next" -m "chore(release): $next"
-          git push origin "$next"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$next" -m "chore(release): $next"
+            git push origin "$next"
+          fi
           echo "tag=$next" >> "$GITHUB_OUTPUT"
           echo "version=${next#v}" >> "$GITHUB_OUTPUT"
-          echo "Created $next"
+          if gh release view "$next" >/dev/null 2>&1; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Reusing existing release $next"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Prepared $next"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run GoReleaser
+        if: steps.version.outputs.release_exists != 'true'
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser

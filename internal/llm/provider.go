@@ -6,6 +6,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -60,12 +61,15 @@ type Provider interface {
 	Chat(ctx context.Context, messages []Message, opts Options) (<-chan Chunk, error)
 }
 
+// ErrMissingAPIKey means coaching is optional but not configured.
+var ErrMissingAPIKey = errors.New("llm: API key is not set")
+
 // New selects and constructs a Provider from config. The API key is read from
 // the environment variable named by cfg.APIKeyEnv.
 func New(cfg config.LLMConfig) (Provider, error) {
 	key := os.Getenv(cfg.APIKeyEnv)
 	if key == "" {
-		return nil, fmt.Errorf("llm: API key env var %s is not set — get a free key and export it (e.g. GEMINI_API_KEY=...)", cfg.APIKeyEnv)
+		return nil, fmt.Errorf("%w: env var %s", ErrMissingAPIKey, cfg.APIKeyEnv)
 	}
 	switch cfg.Provider {
 	case "gemini", "":

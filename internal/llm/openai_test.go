@@ -1,10 +1,19 @@
 package llm
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/DuckInAShirt/leetmate/internal/config"
 )
+
+func TestNewReturnsTypedMissingAPIKeyError(t *testing.T) {
+	t.Setenv("TEST_LLM_KEY", "")
+	_, err := New(config.LLMConfig{Provider: "gemini", APIKeyEnv: "TEST_LLM_KEY"})
+	if !errors.Is(err, ErrMissingAPIKey) {
+		t.Fatalf("New() error = %v, want ErrMissingAPIKey", err)
+	}
+}
 
 func TestParseOpenAIChunkReasoningContent(t *testing.T) {
 	chunk, err := parseOpenAIChunk([]byte(`{"choices":[{"delta":{"reasoning_content":"hidden thinking"}}]}`))

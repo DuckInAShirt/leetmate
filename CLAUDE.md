@@ -50,6 +50,7 @@ vhs docs/demo.tape
 cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
   │
   ├── config      配置加载（yaml + .env + LEETMATE_* 环境变量）
+  ├── doctor      本地环境诊断（config/leetgo/workspace/auth/LLM/数据目录；不联网、不打印 secret）
   ├── domain      纯实体：Problem / Attempt / Card / Conversation / Result（无 SQL、无 LLM SDK）
   │
   ├── leetgo      adapter：shell out 调外部 leetgo CLI（pick/test/submit），解析其结构化输出
@@ -62,8 +63,10 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
   └── tui         bubbletea 根 Model 状态机 + 各视图
 ```
 
-### CLI 入口与配置子命令
-`cmd/leetmate/main.go` 先分发 `init` / `config` 子命令，再进入 TUI。子命令实现集中在 `cmd/leetmate/config_cmd.go`：`init` 生成 `config.yaml` + `.env` 模板，`config` 打印解析后的配置状态，`config --presets` 列内置 LLM preset。修改首次上手流程时同步更新 `cmd/leetmate/config_cmd_test.go`、README/中文 README。
+### CLI 入口、首跑与配置子命令
+`cmd/leetmate/main.go` 先分发 `init` / `config` / `doctor` 子命令，再进入 TUI。首次直接运行且缺少 `config.yaml` 时，交互终端走 `onboarding.go` 的轻量 CLI 引导；非交互环境只输出下一条可执行命令，绝不等待输入。正常启动会复用 `internal/doctor` 的必需项检查，完整配置用户不增加交互。
+
+`config_cmd.go` 的 `init` 生成 `config.yaml` + `.env` 模板，并从当前目录向上发现 `leetgo.yaml`；`config` 打印解析后的配置状态；`doctor_cmd.go` 输出 PASS/WARN/FAIL，`--json` 提供结构化结果。认证诊断只检查本地配置（兼容 leetgo 新旧 YAML 和 workspace `.env`），不联网、不打印 secret。修改首次上手流程时同步更新 `cmd/leetmate/*_test.go`、README/中文 README 和 `docs/demo.tape`。
 
 ### TUI 是状态机驱动
 `tui/app.go` 的根 `Model` 用 `view` 常量（`viewMenu`/`viewPractice`/`viewPlanList`/`viewPlanItems`）切视图。所有副作用（leetgo 命令、LLM 流、写库）都封装成 `tea.Cmd`，结果以 `*Msg` 回流到 `Update`——`cmds.go` 是这些 Cmd/Msg 的集中定义处，是理解异步数据流（pick→test→submit、coach 流式）的入口。首页视觉由 `menuView()` 的 helper、`styles.go` 和 `banner.go` 组合；banner 渲染需要保持每行 display width 一致（见 `TestLogoRenderPadsLinesToSameWidth`）。
@@ -87,7 +90,7 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
 `tui/i18n.go` 的轻量字典：所有面向用户的字符串按 key + language 查表，缺翻译回退英文。加语言加列、加字符串加 key。
 
 ### README / demo / release
-`README.md` 是英文主 README，`README.zh-CN.md` 是中文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试、创建下一个 `v*` patch tag 并运行 GoReleaser；`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
+`README.md` 是英文主 README，`README.zh-CN.md` 是中文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试并运行 GoReleaser；根目录 `VERSION` 可指定下一个 minor/major 版本，最新 tag 达到该值后恢复自动 patch，workflow 重跑复用当前 SHA 已有 tag。`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
 
 ## 约定
 

@@ -392,7 +392,7 @@ func (m Model) scrollFocused(p *practiceModel, dir int, page bool) {
 func (m Model) startCoach(tier domain.Tier, gaveUp bool) (tea.Model, tea.Cmd) {
 	p := m.practice
 	if m.deps.Coach == nil {
-		p.coachErr = "LLM 未配置：请在 config.yaml 配置 provider，并设置 API key 环境变量"
+		p.coachErr = m.d.t("coach.unavailable")
 		return m, nil
 	}
 	// Always re-read code from disk so coaching reflects the latest edits, even
@@ -520,6 +520,9 @@ func (m Model) renderHomePrompt(width int) string {
 
 func (m Model) renderHomeStatus(width int) string {
 	status := m.d.t("home.status.ready")
+	if m.deps.Coach == nil {
+		status = m.d.t("home.status.leetgoOnly")
+	}
 	style := homeStatusStyle
 	if m.err != "" {
 		status = "⚠ " + m.err
