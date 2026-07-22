@@ -19,7 +19,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
+  <a href="docs/demo.mp4">
+    <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
+  </a>
 </p>
 
 LeetMate 是一个跑在终端里的 **LeetCode 刷题辅导工具**，围绕「面试备战」设计。它不替你解题——你卡住时给一个**提示**而不是答案；练过的题会被排进**间隔复习队列**，赶在你忘掉之前回来。

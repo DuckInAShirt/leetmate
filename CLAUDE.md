@@ -36,7 +36,8 @@ go test -tags=integration ./internal/leetgo/...
 go vet ./...
 git diff --check
 
-# README demo GIF（需安装 charmbracelet/tap/vhs）
+# README demo（需安装 charmbracelet/tap/vhs；同一 tape 生成 GIF + MP4）
+vhs validate docs/demo.tape
 vhs docs/demo.tape
 ```
 
@@ -90,7 +91,7 @@ cmd/leetmate (main: 子命令分发 / 组装依赖 → 启动 bubbletea)
 `tui/i18n.go` 的轻量字典：所有面向用户的字符串按 key + language 查表，缺翻译回退英文。加语言加列、加字符串加 key。
 
 ### README / demo / release
-`README.md` 是中文主 README，`README.en.md` 是英文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 由 `docs/demo.tape`（VHS）生成，展示首页→Hot100→Hint→展开辅导全文的稳定流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试并运行 GoReleaser；根目录 `VERSION` 可指定下一个 minor/major 版本，最新 tag 达到该值后恢复自动 patch，workflow 重跑复用当前 SHA 已有 tag。`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
+`README.md` 是中文主 README，`README.en.md` 是英文镜像；改首屏、配置说明或功能状态时两边都要同步。`docs/demo.gif` 与 `docs/demo.mp4` 由 `docs/demo.tape`（VHS）同次生成；GIF 用于 README 自动展示，MP4 用于下载/分享。录制先以双语打字机片头说明产品价值，再展示首页→Hot100→Hint→展开辅导全文的流程。发布链路：`.github/workflows/auto-release.yml` 在 `main` push 后跑测试并运行 GoReleaser；根目录 `VERSION` 可指定下一个 minor/major 版本，最新 tag 达到该值后恢复自动 patch，workflow 重跑复用当前 SHA 已有 tag。`.github/workflows/release.yml` 仍支持手动 `v*` tag push 发版；发版前至少跑 `go test ./...`、`go build -o leetmate ./cmd/leetmate`、`git diff --check`。
 
 ## 约定
 
