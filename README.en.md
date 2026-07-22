@@ -19,7 +19,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
+  <a href="docs/demo.mp4">
+    <img src="docs/demo.gif" width="820" alt="LeetMate demo" />
+  </a>
 </p>
 
 LeetMate is a terminal-based **LeetCode coaching TUI** built for interview prep. It does not solve problems for you: when you are stuck, it gives a **hint** instead of an answer. Practiced problems are queued for spaced review so you revisit them before they fade.
