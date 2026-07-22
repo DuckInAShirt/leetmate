@@ -84,7 +84,13 @@ func (p *openaiProvider) Chat(ctx context.Context, messages []Message, opts Opti
 func (p *openaiProvider) disableThinkingByDefault() bool {
 	baseURL := strings.ToLower(p.cfg.BaseURL)
 	model := strings.ToLower(p.cfg.Model)
-	return strings.Contains(baseURL, "siliconflow") && strings.Contains(model, "qwen")
+	if !strings.Contains(baseURL, "siliconflow") {
+		return false
+	}
+	// SiliconFlow 上的 reasoning 模型（Qwen3 / DeepSeek-R1 / DeepSeek-V4-flash 等）
+	// 默认开启 thinking，正文 chunk 会被冗长的推理延迟，TUI 因此卡在"模型正在推理…"。
+	// 这些模型支持 enable_thinking=false，关掉后正文立即开始流式返回。
+	return strings.Contains(model, "qwen") || strings.Contains(model, "deepseek")
 }
 
 func parseOpenAIChunk(payload []byte) (Chunk, error) {
