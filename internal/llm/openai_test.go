@@ -38,18 +38,23 @@ func TestParseOpenAIChunkPrefersContentOverReasoning(t *testing.T) {
 	}
 }
 
-func TestDisableThinkingByDefaultOnlyForSiliconFlowQwen(t *testing.T) {
-	p := &openaiProvider{cfg: config.LLMConfig{BaseURL: "https://api.siliconflow.cn/v1", Model: "Qwen/Qwen3.6-35B-A3B"}}
-	if !p.disableThinkingByDefault() {
-		t.Fatal("expected SiliconFlow Qwen to disable thinking")
+func TestDisableThinkingByDefaultForSiliconFlowReasoningModels(t *testing.T) {
+	cases := []struct {
+		name                string
+		baseURL, model      string
+		wantDisableThinking bool
+	}{
+		{"siliconflow qwen", "https://api.siliconflow.cn/v1", "Qwen/Qwen3.6-35B-A3B", true},
+		{"siliconflow deepseek", "https://api.siliconflow.cn/v1", "deepseek-ai/DeepSeek-V4-flash", true},
+		{"siliconflow non-reasoning model", "https://api.siliconflow.cn/v1", "zai-org/GLM-4.6", false},
+		{"non-siliconflow qwen", "https://api.openai.com/v1", "Qwen/Qwen3.6-35B-A3B", false},
 	}
-	p.cfg.Model = "deepseek-ai/DeepSeek-V4-flash"
-	if p.disableThinkingByDefault() {
-		t.Fatal("did not expect non-Qwen model to disable thinking")
-	}
-	p.cfg.BaseURL = "https://api.openai.com/v1"
-	p.cfg.Model = "Qwen/Qwen3.6-35B-A3B"
-	if p.disableThinkingByDefault() {
-		t.Fatal("did not expect non-SiliconFlow endpoint to disable thinking")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := &openaiProvider{cfg: config.LLMConfig{BaseURL: tc.baseURL, Model: tc.model}}
+			if got := p.disableThinkingByDefault(); got != tc.wantDisableThinking {
+				t.Fatalf("disableThinkingByDefault(%s, %s) = %v, want %v", tc.baseURL, tc.model, got, tc.wantDisableThinking)
+			}
+		})
 	}
 }
