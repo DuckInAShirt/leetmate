@@ -152,6 +152,18 @@ func TestInspectCredentialsAllowsFallbackProvider(t *testing.T) {
 	}
 }
 
+func TestInspectCredentialsFlagsBrowserAsUnreliable(t *testing.T) {
+	t.Setenv("LEETCODE_SESSION", "")
+	t.Setenv("LEETCODE_CSRFTOKEN", "")
+	workspace := t.TempDir()
+	writeFile(t, filepath.Join(workspace, "leetgo.yaml"), "leetcode:\n  credentials:\n    from: browser\n")
+
+	check := inspectCredentials(workspace)
+	if check.Level != Warn || check.Reason != "browser_unreliable" {
+		t.Fatalf("inspectCredentials() = %#v, want Warn/browser_unreliable", check)
+	}
+}
+
 func TestInspectCredentialsSupportsExportDotenv(t *testing.T) {
 	workspace := t.TempDir()
 	writeFile(t, filepath.Join(workspace, "leetgo.yaml"), "code:\n  lang: go\nleetcode:\n  credentials: cookies\n")

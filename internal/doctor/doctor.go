@@ -230,10 +230,13 @@ func inspectCredentials(workspace string) Check {
 	}
 	cookieConfigured := false
 	cookieMissing := false
+	cookiesDeclared := false
+	browserSource := false
 	otherSource := false
 	for _, source := range sources {
 		switch source {
 		case "cookies":
+			cookiesDeclared = true
 			session, sessionSet := os.LookupEnv("LEETCODE_SESSION")
 			csrf, csrfSet := os.LookupEnv("LEETCODE_CSRFTOKEN")
 			if !sessionSet || !csrfSet {
@@ -249,6 +252,9 @@ func inspectCredentials(workspace string) Check {
 			}
 			cookieConfigured = credentialConfigured(session) && credentialConfigured(csrf)
 			cookieMissing = !cookieConfigured
+		case "browser":
+			browserSource = true
+			otherSource = true
 		default:
 			otherSource = true
 		}
@@ -258,6 +264,12 @@ func inspectCredentials(workspace string) Check {
 			return Check{ID: "auth", Level: Warn, Reason: "runtime_unverified", Value: strings.Join(sources, ",")}
 		}
 		return Check{ID: "auth", Level: Pass, Reason: "cookies_ready", Value: "cookies"}
+	}
+	// browser mode reads cookies from the browser's cookie store, which on macOS
+	// is Keychain-encrypted / sandboxed and leetgo cannot decode — test/submit
+	// then fail with "failed to read cookies". Steer users to cookies mode.
+	if browserSource && !cookiesDeclared {
+		return Check{ID: "auth", Level: Warn, Reason: "browser_unreliable", Value: "browser"}
 	}
 	if cookieMissing && !otherSource {
 		return Check{ID: "auth", Level: Warn, Reason: "cookies_missing", Value: "cookies"}

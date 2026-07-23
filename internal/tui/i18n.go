@@ -208,6 +208,7 @@ var messages = map[string]map[Lang]string{
 	"doctor.auth.cookies_ready":         {LangZH: "cookies 已在环境或 workspace .env 中配置（未联网验证）", LangEN: "cookies are configured in the environment or workspace .env (not verified online)"},
 	"doctor.auth.cookies_missing":       {LangZH: "cookies 未完整配置；在工作区 .env 设置 LEETCODE_SESSION 和 LEETCODE_CSRFTOKEN", LangEN: "cookies are incomplete; set LEETCODE_SESSION and LEETCODE_CSRFTOKEN in the workspace .env"},
 	"doctor.auth.runtime_unverified":    {LangZH: "使用 %s，只能在运行时由 leetgo 验证", LangEN: "using %s; only leetgo can verify it at runtime"},
+	"doctor.auth.browser_unreliable":    {LangZH: "browser 模式：macOS 上浏览器 cookie 多被加密或沙盒，leetgo 读不到，test/submit 会失败；建议改 cookies 模式，并在工作区 .env 填 LEETCODE_SESSION 与 LEETCODE_CSRFTOKEN", LangEN: "browser mode: on macOS browser cookies are encrypted/sandboxed and leetgo cannot read them, so test/submit fail; switch to cookies mode and set LEETCODE_SESSION and LEETCODE_CSRFTOKEN in the workspace .env"},
 	"doctor.auth.missing":               {LangZH: "未声明认证方式；test/submit 可能不可用", LangEN: "no authentication method declared; test/submit may be unavailable"},
 	"doctor.llm.found":                  {LangZH: "已检测到 %s", LangEN: "detected %s"},
 	"doctor.llm.missing":                {LangZH: "未设置 %s；可继续刷题，但 Coach 不可用", LangEN: "%s is unset; practice still works, but Coach is unavailable"},
