@@ -225,9 +225,12 @@ func (c *Client) codeFile(dir string) string {
 
 // resolveProblemDir finds the generated directory for a slug under the
 // workspace (handles the <NNNN>.<slug> naming convention across language
-// subdirectories).
+// subdirectories). When the workspace contains several language subdirs for
+// the same problem (e.g. both go/0076.<slug> and python/0076.<slug>), prefer
+// the one under the configured code language — otherwise codeFile cannot find
+// the source file and the practice view comes up empty.
 func (c *Client) resolveProblemDir(slug string) (string, error) {
-	var match string
+	var match, langMatch string
 	err := filepath.Walk(c.workspace, func(path string, info os.FileInfo, err error) error {
 		if err != nil || !info.IsDir() {
 			return nil
@@ -236,17 +239,32 @@ func (c *Client) resolveProblemDir(slug string) (string, error) {
 			return filepath.SkipDir
 		}
 		// Directory basename is "<id>.<slug>"; match by suffix ".<slug>".
-		if strings.HasSuffix(info.Name(), "."+slug) {
+		if !strings.HasSuffix(info.Name(), "."+slug) {
+			return nil
+		}
+		if match == "" {
 			match = path
-			return filepath.SkipAll
+		}
+		// Prefer the directory nested under the configured language subdir
+		// (e.g. "python/0076.<slug>" when lang is "python").
+		if langMatch == "" {
+			if rel, rerr := filepath.Rel(c.workspace, path); rerr == nil {
+				if top, _, _ := strings.Cut(filepath.ToSlash(rel), "/"); top == c.lang {
+					langMatch = path
+				}
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return "", err
 	}
-	if match == "" {
+	chosen := langMatch
+	if chosen == "" {
+		chosen = match
+	}
+	if chosen == "" {
 		return "", fmt.Errorf("no generated directory found for slug %q under %s", slug, c.workspace)
 	}
-	return match, nil
+	return chosen, nil
 }
