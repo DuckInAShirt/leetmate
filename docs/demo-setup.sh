@@ -50,6 +50,34 @@ fi
 
 LEETMATE_CONFIG_DIR="${demo_config}" ./leetmate config set leetgo.workspace "${demo_workspace}" >/dev/null
 LEETMATE_CONFIG_DIR="${demo_config}" ./leetmate config set db.path "" >/dev/null
+# 录 demo 专用：换上 SiliconFlow 上最快的 instruct 模型（Qwen3-30B-A3B，MoE 仅激活 3B，
+# 实测 ~0.5s 响应，比默认 DeepSeek-V4-Flash 快约 18 倍），让 Hint/Nudge/Review 在镜头内流完。
+# 仅覆盖 model，preset/provider 仍是 siliconflow，复用 SILICONFLOW_API_KEY。
+LEETMATE_CONFIG_DIR="${demo_config}" ./leetmate config set llm.model Qwen/Qwen3-30B-A3B-Instruct-2507 >/dev/null
+
+# Pre-pick the first Hot 100 problem (two-sum) and seed an EMPTY function body
+# (signature only), so the demo can show a real "write code from scratch" moment
+# by typing the whole hash-map solution in the built-in editor.
+#
+# We also strip the `# @lc code=end` marker and the local `if __name__` test
+# block: the built-in editor opens with the cursor at the file's end, so to make
+# the typed lines land INSIDE leetgo's submit region (`@lc code=begin` .. end),
+# the file must end right after the signature. leetgo still submits `begin`→EOF
+# and accepts the solution. leetgo pick never overwrites an existing solution,
+# so the seeded skeleton survives the demo's own pick.
+( cd "${demo_workspace}" && leetgo pick 1 >/dev/null 2>&1 ) || true
+seed_sol="${demo_workspace}/python/0001.two-sum/solution.py"
+if [ -f "${seed_sol}" ]; then
+  python3 - "${seed_sol}" <<'PYEOF'
+import sys, re
+p = sys.argv[1]; s = open(p).read()
+pat = r'(    def twoSum\(self, nums: List\[int\], target: int\) -> List\[int\]:)\n[ \t]*\n'
+rep = r'\1\n'
+s2, n = re.subn(pat, rep, s)
+s2 = re.sub(r'\n# @lc code=end.*', '', s2, flags=re.DOTALL)
+open(p, 'w').write(s2 if n else s)
+PYEOF
+fi
 
 export LEETMATE_CONFIG_DIR="${demo_config}"
 export LEETMATE_DEMO_ROOT="${demo_root}"
