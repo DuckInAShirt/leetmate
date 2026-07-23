@@ -28,3 +28,6 @@ leetgo.yaml.local
 # Go
 coverage.out
 coverage.html
+
+# Claude Code agent memory (local only)
+/memory/
