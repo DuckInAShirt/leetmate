@@ -51,3 +51,39 @@ exit 0
 		t.Fatalf("error should include combined output, got %q", err.Error())
 	}
 }
+
+// TestResolveProblemDirPrefersConfiguredLang guards against the multi-language
+// regression: when a workspace has both go/<id>.<slug> and python/<id>.<slug>,
+// the dir under the configured code language must win. Otherwise codeFile
+// cannot find the source file and the practice view comes up empty.
+func TestResolveProblemDirPrefersConfiguredLang(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "leetgo.yaml"),
+		[]byte("code:\n  lang: python\n"), 0o644); err != nil {
+		t.Fatalf("write leetgo.yaml: %v", err)
+	}
+	const slug = "minimum-window-substring"
+	// Seed both go/ and python/ dirs (go sorts before python, so a naive
+	// first-match Walk would pick the wrong one).
+	for _, lang := range []string{"go", "python"} {
+		dir := filepath.Join(workspace, lang, "0076."+slug)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", dir, err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "question.md"), []byte("# 76\n"), 0o644); err != nil {
+			t.Fatalf("write question.md: %v", err)
+		}
+	}
+	c, err := New(config.LeetgoConfig{Workspace: workspace, Binary: "fake-leetgo"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	got, err := c.resolveProblemDir(slug)
+	if err != nil {
+		t.Fatalf("resolveProblemDir: %v", err)
+	}
+	want := filepath.Join(workspace, "python", "0076."+slug)
+	if got != want {
+		t.Fatalf("resolveProblemDir = %q, want %q (configured lang is python, not go)", got, want)
+	}
+}
