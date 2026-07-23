@@ -227,7 +227,7 @@ func (c *Client) codeFile(dir string) string {
 // workspace (handles the <NNNN>.<slug> naming convention across language
 // subdirectories).
 func (c *Client) resolveProblemDir(slug string) (string, error) {
-	var match string
+	var matches []string
 	err := filepath.Walk(c.workspace, func(path string, info os.FileInfo, err error) error {
 		if err != nil || !info.IsDir() {
 			return nil
@@ -237,16 +237,25 @@ func (c *Client) resolveProblemDir(slug string) (string, error) {
 		}
 		// Directory basename is "<id>.<slug>"; match by suffix ".<slug>".
 		if strings.HasSuffix(info.Name(), "."+slug) {
-			match = path
-			return filepath.SkipAll
+			matches = append(matches, path)
 		}
 		return nil
 	})
 	if err != nil {
 		return "", err
 	}
-	if match == "" {
+	if len(matches) == 0 {
 		return "", fmt.Errorf("no generated directory found for slug %q under %s", slug, c.workspace)
 	}
-	return match, nil
+	// A workspace can hold several language subdirs (go/, python/, ...) for the
+	// same problem after the user switches code.lang. filepath.Walk visits them
+	// in lexical order, so the first match (e.g. go/) would shadow the active
+	// language and the scaffold would render empty. Prefer the dir that actually
+	// contains a code file for the configured language.
+	for _, dir := range matches {
+		if c.codeFile(dir) != "" {
+			return dir, nil
+		}
+	}
+	return matches[0], nil
 }

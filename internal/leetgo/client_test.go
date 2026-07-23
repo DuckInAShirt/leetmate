@@ -51,3 +51,42 @@ exit 0
 		t.Fatalf("error should include combined output, got %q", err.Error())
 	}
 }
+
+func TestResolveProblemDirPrefersCurrentLanguage(t *testing.T) {
+	workspace := t.TempDir()
+	// Simulate a workspace that holds both go/ and python/ scaffolds for the same
+	// problem — common after the user switches code.lang while history remains.
+	for _, lang := range []string{"go", "python"} {
+		dir := filepath.Join(workspace, lang, "0239.sliding-window-maximum")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", lang, err)
+		}
+		ext := ".go"
+		if lang == "python" {
+			ext = ".py"
+		}
+		if err := os.WriteFile(filepath.Join(dir, "solution"+ext), []byte("# scaffold\n"), 0o644); err != nil {
+			t.Fatalf("write solution: %v", err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(workspace, "leetgo.yaml"), []byte("code:\n  lang: python\n"), 0o644); err != nil {
+		t.Fatalf("write leetgo.yaml: %v", err)
+	}
+	c, err := New(config.LeetgoConfig{Workspace: workspace})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	dir, err := c.resolveProblemDir("sliding-window-maximum")
+	if err != nil {
+		t.Fatalf("resolveProblemDir: %v", err)
+	}
+	// Must pick the python/ subdir (the configured language), not the
+	// lexically-first go/ — otherwise codeFile finds no .py and the scaffold
+	// renders empty (the 239 bug).
+	if !strings.HasSuffix(filepath.ToSlash(dir), "python/0239.sliding-window-maximum") {
+		t.Fatalf("resolveProblemDir = %q, want the python/ subdir for lang=python", dir)
+	}
+	if c.codeFile(dir) == "" {
+		t.Fatalf("codeFile returned empty for resolved dir %s", dir)
+	}
+}
