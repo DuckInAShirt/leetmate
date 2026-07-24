@@ -6,6 +6,10 @@
 </p>
 
 <p align="center">
+  <em>If LeetMate helps you, please give it a ⭐ <a href="https://github.com/DuckInAShirt/leetmate/stargazers">Star</a> — it keeps me building.</em>
+</p>
+
+<p align="center">
   <strong>English</strong> · <a href="README.md">简体中文</a>
 </p>
 
