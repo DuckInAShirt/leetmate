@@ -195,12 +195,34 @@ func (c *Client) Submit(ctx context.Context, qid string) (domain.SubmitResult, e
 // leetgo's default Go template emits `solution.go` (not `<dirname>.go`), so we
 // scan the directory: prefer `solution<ext>`, otherwise the first non-test
 // source file matching the language extension.
+//
+// When the configured language has no file in this directory (e.g. the learner
+// switched code.lang but this problem was only ever generated for another
+// language), fall back to any recognized source file so the practice view never
+// comes up empty.
 func (c *Client) codeFile(dir string) string {
-	ext := langExt(c.lang)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return ""
 	}
+	if f := findCodeFile(entries, dir, langExt(c.lang), c.lang); f != "" {
+		return f
+	}
+	// Fall back across other languages — the configured one had no match here.
+	for _, lc := range knownLangExts {
+		if lc.ext == langExt(c.lang) {
+			continue
+		}
+		if f := findCodeFile(entries, dir, lc.ext, lc.lang); f != "" {
+			return f
+		}
+	}
+	return ""
+}
+
+// findCodeFile returns the path to the learner's code file among entries for the
+// given extension: `solution<ext>` wins, otherwise the first non-test source.
+func findCodeFile(entries []os.DirEntry, dir, ext, lang string) string {
 	var fallback string
 	for _, e := range entries {
 		if e.IsDir() {
@@ -210,7 +232,7 @@ func (c *Client) codeFile(dir string) string {
 		if !strings.HasSuffix(name, ext) {
 			continue
 		}
-		if isTestFile(name, c.lang) {
+		if isTestFile(name, lang) {
 			continue
 		}
 		if name == "solution"+ext {
