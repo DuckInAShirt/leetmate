@@ -6,6 +6,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ const (
 	viewPractice
 	viewPlanList  // choose a study plan
 	viewPlanItems // choose a problem within a plan
+	viewACM       // ACM mode: write input/output from scratch
 )
 
 type menuItem struct {
@@ -51,6 +53,10 @@ type Model struct {
 	menu   []menuItem
 
 	practice *practiceModel
+	acm      *acmModel
+	// modeACM routes the next picked problem into the ACM view (set by the
+	// menu's ACM entry, consumed by pickResultMsg).
+	modeACM bool
 
 	// coachStream is the live LLM stream while coaching is in progress; nil
 	// otherwise. See coachStartCmd / listenCoach.
@@ -81,6 +87,7 @@ func New(deps Deps) Model {
 			{label: d.t("menu.today"), desc: d.t("menu.today.desc")},
 			{label: d.t("menu.plans"), desc: d.t("menu.plans.desc")},
 			{label: d.t("menu.review"), desc: d.t("menu.review.desc")},
+			{label: d.t("menu.acm"), desc: d.t("menu.acm.desc")},
 			{label: d.t("menu.quit"), desc: ""},
 		},
 	}
@@ -97,12 +104,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.practice != nil {
 			m.practice.resize(msg.Width, msg.Height)
 		}
+		if m.acm != nil {
+			m.acm.resize(msg.Width, msg.Height)
+		}
 		return m, nil
 
 	case pickResultMsg:
 		m.busy = false
 		if msg.err != nil {
 			m.err = msg.err.Error()
+			return m, nil
+		}
+		if m.modeACM {
+			a := newACMModel(m.deps, msg.problem)
+			a.resize(m.width, m.height)
+			m.acm = &a
+			m.view = viewACM
+			m.modeACM = false
+			m.err = ""
 			return m, nil
 		}
 		pm := newPracticeModel(m.deps, msg.problem)
@@ -153,6 +172,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case editorSavedMsg:
 		if m.practice != nil {
 			m.practice.applyEditorSaved(m.deps, msg)
+		}
+		if m.acm != nil {
+			m.acm.applyEditorSaved(msg)
+		}
+		return m, nil
+
+	case runResultMsg:
+		if m.acm != nil {
+			m.acm.applyRun(msg)
 		}
 		return m, nil
 
@@ -224,6 +252,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m.practiceUpdate(key, str)
+	case viewACM:
+		if m.acm == nil {
+			return m, nil
+		}
+		return m.acmUpdate(key, str)
 	}
 	return m, nil
 }
@@ -237,10 +270,12 @@ func (m Model) updateMenu(str string) (tea.Model, tea.Cmd) {
 	case "enter":
 		switch m.cursor {
 		case 0: // Today's problem
+			m.modeACM = false
 			m.busy = true
 			m.err = ""
 			return m, pickCmd(m.deps, "today", nil)
 		case 1: // Study plans
+			m.modeACM = false
 			if m.deps.Plans != nil {
 				m.planList = m.deps.Plans.Plans()
 				m.planCursor = 0
@@ -248,11 +283,20 @@ func (m Model) updateMenu(str string) (tea.Model, tea.Cmd) {
 				m.err = ""
 			}
 		case 2: // Due for review
+			m.modeACM = false
 			m.busy = true
 			m.err = ""
 			m.notice = ""
 			return m, reviewPickCmd(m.deps)
-		case 3: // Quit
+		case 3: // ACM mode — pick via study plans, but open in the ACM view
+			m.modeACM = true
+			if m.deps.Plans != nil {
+				m.planList = m.deps.Plans.Plans()
+				m.planCursor = 0
+				m.view = viewPlanList
+				m.err = ""
+			}
+		case 4: // Quit
 			return m, tea.Quit
 		}
 	case "q", "esc":
@@ -369,6 +413,103 @@ func (m Model) practiceEditorUpdate(key tea.KeyMsg, str string) (tea.Model, tea.
 	return m, cmd
 }
 
+func (m Model) acmUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
+	a := m.acm
+	if a.editing {
+		return m.acmEditorUpdate(key, str)
+	}
+	if a.expanded {
+		return m.acmExpandUpdate(key, str)
+	}
+	switch str {
+	case "i":
+		return m, a.startEditing()
+	case "o":
+		a.openExpand("statement")
+		return m, nil
+	case "r":
+		return m.acmRun()
+	case "e":
+		return m, openEditor(m.deps, a.acmPath)
+	case "b", "esc":
+		m.acm = nil
+		m.view = viewMenu
+		return m, nil
+	case "q":
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+// acmExpandUpdate handles full-screen expand mode: tab cycles panes (mirrors
+// practice's expand mode), i edits code/stdin, o/esc returns.
+func (m Model) acmExpandUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
+	a := m.acm
+	switch str {
+	case "tab":
+		a.cycleExpand()
+		return m, nil
+	case "i":
+		if a.expandKind == "code" || a.expandKind == "stdin" {
+			return m, a.startEditing()
+		}
+	case "o", "esc":
+		a.expanded = false
+		return m, nil
+	case "r":
+		return m.acmRun()
+	case "q":
+		return m, tea.Quit
+	case "up", "k":
+		a.scrollExpand(-1, false)
+		return m, nil
+	case "down", "j":
+		a.scrollExpand(1, false)
+		return m, nil
+	case "pgup":
+		a.scrollExpand(-1, true)
+		return m, nil
+	case "pgdown":
+		a.scrollExpand(1, true)
+		return m, nil
+	}
+	_ = key
+	return m, nil
+}
+
+func (m Model) acmEditorUpdate(key tea.KeyMsg, str string) (tea.Model, tea.Cmd) {
+	a := m.acm
+	switch str {
+	case "esc":
+		return m, a.saveEditor(true)
+	case "ctrl+s":
+		return m, a.saveEditor(false)
+	case "tab":
+		// tab indents (python needs it); pane switching happens in expand mode.
+		a.insertEditorText("    ")
+		return m, nil
+	}
+	return m, a.updateEditorKey(key)
+}
+
+// acmRun persists the code pane to acm.<ext> then runs it once, feeding the
+// stdin pane. The write is synchronous (small file) so RunLocal sees the latest.
+func (m Model) acmRun() (tea.Model, tea.Cmd) {
+	a := m.acm
+	if a.acmPath == "" {
+		a.status = a.d.t("acm.noPath")
+		return m, nil
+	}
+	if err := os.WriteFile(a.acmPath, []byte(a.codeValue()), 0o644); err != nil {
+		a.status = a.d.t("practice.saveError") + summarizeErr(err.Error())
+		return m, nil
+	}
+	a.running = true
+	a.openExpand("output") // jump to the output pane so the result is visible
+	a.status = a.d.t("acm.running")
+	return m, runCmd(m.deps, a.lang, a.acmPath, a.stdinValue())
+}
+
 // scrollFocused scrolls the focused pane (code or coach) by one line or half page.
 func (m Model) scrollFocused(p *practiceModel, dir int, page bool) {
 	vp := &p.viewport
@@ -430,6 +571,10 @@ func (m Model) View() string {
 		return m.renderPlanList()
 	case viewPlanItems:
 		return m.renderPlanItems()
+	case viewACM:
+		if m.acm != nil {
+			return m.acm.view()
+		}
 	}
 	return m.menuView()
 }

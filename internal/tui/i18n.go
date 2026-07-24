@@ -128,6 +128,39 @@ var messages = map[string]map[Lang]string{
 		LangZH: "复习记录保存失败",
 		LangEN: "review record save failed",
 	},
+
+	// ACM mode — write input/output from scratch, no leetgo skeleton.
+	"menu.acm":          {LangZH: "ACM 模式", LangEN: "ACM mode"},
+	"menu.acm.desc":     {LangZH: "自己写输入输出", LangEN: "write input/output yourself"},
+	"acm.badge":         {LangZH: "[ACM · 自己写输入输出]", LangEN: "[ACM · write IO yourself]"},
+	"acm.sectionStdin":  {LangZH: "输入（自己写测试数据）", LangEN: "input (your test data)"},
+	"acm.sectionCode":   {LangZH: "代码（自己写 import + 输入输出）", LangEN: "code (your import + IO)"},
+	"acm.sectionOutput": {LangZH: "运行输出", LangEN: "run output"},
+	"acm.outputEmpty": {
+		LangZH: "按 r 运行 — 会把上方「输入」喂给你的代码，输出显示在这里",
+		LangEN: "press r to run — feeds the input pane to your code, output appears here",
+	},
+	"acm.hint": {
+		LangZH: "i 编辑 · o 全屏(题面/代码/输入/输出) · r 运行 · e 外部编辑 · b 返回 · q 退出",
+		LangEN: "i edit · o expand (statement/code/input/output) · r run · e external · b back · q quit",
+	},
+	"acm.editorHint": {
+		LangZH: "编辑中：tab 缩进 · esc 保存退出 · ctrl+s 保存 · 括号/引号自动补全",
+		LangEN: "editing: tab indent · esc save & exit · ctrl+s save · brackets/quotes auto-pair",
+	},
+	"acm.expandHint": {
+		LangZH: "tab 切 题面/代码/输入/输出 · i 编辑(代码/输入) · o/esc 返回 · ↑/↓ 滚动",
+		LangEN: "tab switch statement/code/input/output · i edit (code/input) · o/esc back · ↑/↓ scroll",
+	},
+	"acm.stdout":   {LangZH: "输出", LangEN: "output"},
+	"acm.stderr":   {LangZH: "报错", LangEN: "stderr"},
+	"acm.emptyOut": {LangZH: "（无输出）", LangEN: "(no output)"},
+	"acm.running":  {LangZH: "正在运行你的代码…", LangEN: "Running your code…"},
+	"acm.done":     {LangZH: "✓ 运行完成", LangEN: "✓ run finished"},
+	"acm.timeout":  {LangZH: "⚠ 运行超时（疑似死循环，已超过 10s）", LangEN: "⚠ timed out (>10s, possible infinite loop)"},
+	"acm.runError": {LangZH: "运行出错", LangEN: "runtime error"},
+	"acm.noPath":   {LangZH: "⚠ 找不到题目目录，无法保存/运行", LangEN: "⚠ problem directory not found"},
+
 	"expand.hint": {
 		LangZH: "Tab/←/→ 切换 · o/esc 收起 · ↑/↓ 或 j/k 滚动",
 		LangEN: "Tab/←/→ switch · o/esc collapse · ↑/↓ or j/k scroll",

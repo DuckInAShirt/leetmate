@@ -84,6 +84,20 @@ var knownLangExts = []struct{ ext, lang string }{
 	{".cs", "csharp"},
 }
 
+// langRunArgs maps a code language to the command that runs a self-contained
+// source file (the ACM-mode program the learner writes from scratch — import +
+// input/output + algorithm, no leetgo skeleton).
+func langRunArgs(lang, path string) ([]string, error) {
+	switch strings.ToLower(lang) {
+	case "python", "python3":
+		return []string{"python3", path}, nil
+	case "go":
+		return []string{"go", "run", path}, nil
+	default:
+		return nil, fmt.Errorf("ACM run: language %q not supported (python/go only)", lang)
+	}
+}
+
 // isTestFile reports whether a generated file is a test/stub rather than the
 // learner's solution file, per language convention.
 func isTestFile(name, lang string) bool {

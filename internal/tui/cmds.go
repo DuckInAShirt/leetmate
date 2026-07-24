@@ -192,3 +192,22 @@ func listenCoach(stream <-chan llm.Chunk) tea.Cmd {
 		return coachChunkMsg{text: chunk.Text, kind: chunk.Kind}
 	}
 }
+
+// --- ACM run ---
+
+// runResultMsg carries the stdout/stderr of one ACM run. stdin comes from the
+// learner's input pane, so there's nothing to loop over and nothing to compare
+// against — the learner reads the output and judges it (interview-style).
+type runResultMsg struct {
+	stdout, stderr string
+	err            error
+}
+
+// runCmd runs the learner's ACM program once with the given stdin. Mirrors the
+// Cmd closure pattern of testCmd; execution reuses leetgo.Client.RunLocal.
+func runCmd(deps Deps, lang, codePath, stdin string) tea.Cmd {
+	return func() tea.Msg {
+		stdout, stderr, err := deps.Leetgo.RunLocal(context.Background(), lang, codePath, stdin)
+		return runResultMsg{stdout: stdout, stderr: stderr, err: err}
+	}
+}
