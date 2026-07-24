@@ -40,6 +40,7 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 - 🗳️ **Local-first data** — Attempts, conversations, and progress live in local SQLite
 - 🌐 **Chinese and English UI** — One config value switches the interface language
 - 📜 **Streaming + expandable details** — Coach replies stream in; press `o` to expand the full reply or full error output
+- ⌨️ **ACM mode (experimental)** — Practice writing input/output yourself: a blank slate for `import` + IO + algorithm; `o` expands, `tab` cycles statement/code/input/output, `r` runs and jumps to output
 
 ## Status
 
@@ -54,6 +55,7 @@ Most LeetCode tools either hand you problems or hand you full solutions. LeetMat
 | FSRS-style spaced review MVP | ✅ |
 | First-run guide + `leetmate doctor` | ✅ |
 | `leetmate init` config generator | ✅ |
+| ACM mode (write your own IO) | 🧪 |
 
 ## Requirements
 
