@@ -1,8 +1,14 @@
 package leetgo
 
 import (
+	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/DuckInAShirt/leetmate/internal/config"
 	"github.com/DuckInAShirt/leetmate/internal/domain"
 )
 
@@ -95,5 +101,44 @@ func TestParseSubmitOutputWrongAnswer(t *testing.T) {
 	}
 	if r.Raw == "" {
 		t.Error("expected raw output preserved")
+	}
+}
+
+func TestLangRunArgs(t *testing.T) {
+	for _, lang := range []string{"python", "python3", "go"} {
+		args, err := langRunArgs(lang, "/tmp/solution")
+		if err != nil {
+			t.Fatalf("langRunArgs(%q): %v", lang, err)
+		}
+		if args[len(args)-1] != "/tmp/solution" {
+			t.Fatalf("langRunArgs(%q) = %v, want path last", lang, args)
+		}
+	}
+	if _, err := langRunArgs("java", "/tmp/x.java"); err == nil {
+		t.Fatal("unsupported lang should error")
+	}
+}
+
+// TestRunLocal is an end-to-end check that ACM-mode execution feeds stdin and
+// captures stdout correctly (the runFull-derived path).
+func TestRunLocal(t *testing.T) {
+	if _, err := exec.LookPath("python3"); err != nil {
+		t.Skip("python3 not in PATH")
+	}
+	dir := t.TempDir()
+	codePath := filepath.Join(dir, "acm.py")
+	if err := os.WriteFile(codePath, []byte("n=input(); print(int(n)+1)\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	c, err := New(config.LeetgoConfig{Workspace: dir, Binary: "leetgo"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	stdout, stderr, err := c.RunLocal(context.Background(), "python", codePath, "41")
+	if err != nil {
+		t.Fatalf("RunLocal: %v\n%s", err, stderr)
+	}
+	if strings.TrimSpace(stdout) != "42" {
+		t.Fatalf("stdout=%q, want 42", stdout)
 	}
 }

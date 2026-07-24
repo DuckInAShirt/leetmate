@@ -9,6 +9,7 @@ package leetgo
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -23,6 +24,15 @@ import (
 // defaultTimeout caps individual leetgo invocations. Submit/test may hit the
 // network; pick is mostly local.
 const defaultTimeout = 60 * time.Second
+
+// acmRunTimeout caps a single ACM-mode run of the learner's own program. It is
+// shorter than leetgo's 60s because user code may infinite-loop.
+const acmRunTimeout = 10 * time.Second
+
+// ErrACMTimeout is returned by RunLocal when the learner's program exceeded
+// acmRunTimeout (e.g. infinite loop), so the UI can say "timed out" rather than
+// the generic "runtime error".
+var ErrACMTimeout = errors.New("program timed out")
 
 // Client is the leetgo adapter. The zero value is not usable; use New.
 type Client struct {
@@ -189,6 +199,31 @@ func (c *Client) Submit(ctx context.Context, qid string) (domain.SubmitResult, e
 		}
 	}
 	return parseSubmitOutput(string(out)), nil
+}
+
+// RunLocal runs a self-contained source file (ACM mode: the learner's own
+// import + input/output + algorithm, with no leetgo skeleton) with the given
+// stdin, returning stdout and stderr. stderr is returned even on error so the
+// UI can surface tracebacks / compile errors. Execution mirrors runFull but
+// feeds user-supplied stdin instead of leetgo's confirmation stream.
+func (c *Client) RunLocal(ctx context.Context, lang, codePath, stdin string) (stdout, stderr string, err error) {
+	args, err := langRunArgs(lang, codePath)
+	if err != nil {
+		return "", "", err
+	}
+	ctx, cancel := context.WithTimeout(ctx, acmRunTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd.Dir = filepath.Dir(codePath)
+	cmd.Stdin = strings.NewReader(stdin)
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+	err = cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		return outBuf.String(), errBuf.String(), ErrACMTimeout
+	}
+	return outBuf.String(), errBuf.String(), err
 }
 
 // codeFile locates the learner's main code file inside the problem directory.
