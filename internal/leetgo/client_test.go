@@ -87,3 +87,61 @@ func TestResolveProblemDirPrefersConfiguredLang(t *testing.T) {
 		t.Fatalf("resolveProblemDir = %q, want %q (configured lang is python, not go)", got, want)
 	}
 }
+
+// TestCodeFileFallsBackAcrossLanguages guards the "switched language, old
+// problem" regression: when code.lang is python but a problem directory only
+// contains solution.go (never generated for python), codeFile must still return
+// that file instead of leaving the practice view empty.
+func TestCodeFileFallsBackAcrossLanguages(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "leetgo.yaml"),
+		[]byte("code:\n  lang: python\n"), 0o644); err != nil {
+		t.Fatalf("write leetgo.yaml: %v", err)
+	}
+	dir := filepath.Join(workspace, "go", "0011.container-with-most-water")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "solution.go"),
+		[]byte("package main\n"), 0o644); err != nil {
+		t.Fatalf("write solution.go: %v", err)
+	}
+	c, err := New(config.LeetgoConfig{Workspace: workspace, Binary: "fake-leetgo"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	got := c.codeFile(dir)
+	want := filepath.Join(dir, "solution.go")
+	if got != want {
+		t.Fatalf("codeFile = %q, want %q (cross-language fallback for python-configured, go-only dir)", got, want)
+	}
+}
+
+// TestCodeFilePrefersConfiguredLangWhenBothPresent ensures the cross-language
+// fallback never shadows the configured language when its file is actually
+// present.
+func TestCodeFilePrefersConfiguredLangWhenBothPresent(t *testing.T) {
+	workspace := t.TempDir()
+	if err := os.WriteFile(filepath.Join(workspace, "leetgo.yaml"),
+		[]byte("code:\n  lang: python\n"), 0o644); err != nil {
+		t.Fatalf("write leetgo.yaml: %v", err)
+	}
+	dir := filepath.Join(workspace, "python", "0001.two-sum")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	for _, name := range []string{"solution.py", "solution.go"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x\n"), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	c, err := New(config.LeetgoConfig{Workspace: workspace, Binary: "fake-leetgo"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	got := c.codeFile(dir)
+	want := filepath.Join(dir, "solution.py")
+	if got != want {
+		t.Fatalf("codeFile = %q, want %q (configured lang python must win over fallback)", got, want)
+	}
+}

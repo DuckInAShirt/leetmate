@@ -66,6 +66,24 @@ func langExt(lang string) string {
 	}
 }
 
+// knownLangExts lists recognized (extension, language) pairs, roughly in
+// popularity order, used by codeFile to fall back across languages when the
+// configured language's source file is absent from a problem directory.
+var knownLangExts = []struct{ ext, lang string }{
+	{".go", "go"},
+	{".py", "python"},
+	{".cpp", "cpp"},
+	{".c", "c"},
+	{".java", "java"},
+	{".rs", "rust"},
+	{".js", "javascript"},
+	{".ts", "typescript"},
+	{".kt", "kotlin"},
+	{".rb", "ruby"},
+	{".swift", "swift"},
+	{".cs", "csharp"},
+}
+
 // isTestFile reports whether a generated file is a test/stub rather than the
 // learner's solution file, per language convention.
 func isTestFile(name, lang string) bool {

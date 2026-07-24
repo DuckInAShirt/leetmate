@@ -119,12 +119,18 @@ func syntaxKeywords(lang string) []string {
 }
 
 func codeLanguage(deps Deps, path string) string {
+	// Prefer the actual file extension — it stays correct even when the shown
+	// file is a cross-language fallback (e.g. code.lang is python but the only
+	// available file is solution.go).
+	if lang := syntaxLang(strings.TrimPrefix(filepath.Ext(path), ".")); lang != "" {
+		return lang
+	}
 	if deps.Leetgo != nil {
 		if lang := syntaxLang(deps.Leetgo.Lang()); lang != "" {
 			return lang
 		}
 	}
-	return syntaxLang(strings.TrimPrefix(filepath.Ext(path), "."))
+	return ""
 }
 
 func syntaxLang(lang string) string {
